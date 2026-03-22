@@ -4,6 +4,10 @@ import type { FeatureCollection, LineString } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
+async function fetchData<T>(url: string) {
+  return await fetch(import.meta.env.BASE_URL + url).then(res => res.json()) as T;
+}
+
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
   ? {
     attribution: '&copy; <a href="https://www.mapbox.com/about/maps">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <a href="https://apps.mapbox.com/feedback/" target="_blank">Improve this map</a>',
@@ -23,7 +27,7 @@ export default function App() {
   const [trails, setTrails] = useState<FeatureCollection<LineString, TrailProperties>>();
   useEffect(() => {
     async function load() {
-      const fetchedTrails = await fetch('/generated/trails.geojson').then(res => res.json()) as FeatureCollection<LineString, TrailProperties>;
+      const fetchedTrails = await fetchData<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
       setTrails(fetchedTrails);
     }
     void load();

@@ -25,3 +25,6 @@ dist-ssr
 
 # dotenv config
 .env
+
+# Generated data
+public/generated/

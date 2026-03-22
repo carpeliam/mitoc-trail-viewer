@@ -4,6 +4,6 @@ import viteConfig from './vite.config';
 export default mergeConfig(viteConfig, defineConfig({
   test: {
     environment: 'jsdom',
-    setupFiles: ['./spec/support/testing-library.ts'],
+    setupFiles: ['./spec/support/mocks.tsx', './spec/support/testing-library.ts', './spec/support/msw.ts'],
   },
 }));

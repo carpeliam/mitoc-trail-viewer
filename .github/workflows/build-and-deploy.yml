@@ -39,7 +39,7 @@ jobs:
         run: ./scripts/fetch-osm-data.ts
 
       - name: Build
-        run: npm run build
+        run: npm run build -- --base=/mitoc-trail-viewer/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

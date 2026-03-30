@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, GeoJSON, type TileLayerProps, LayersControl } from 'react-leaflet';
 import { useEffect, useState } from 'react';
-import type { FeatureCollection, LineString } from 'geojson';
+import type { Feature, FeatureCollection, Geometry, LineString } from 'geojson';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
@@ -23,19 +24,45 @@ interface TrailProperties {
   name: string;
 }
 
+interface PeakProperties {
+  id: string;
+  name: string;
+  ele: string;
+}
+
 export default function App() {
   const [trails, setTrails] = useState<FeatureCollection<LineString, TrailProperties>>();
+  const [peaks, setPeaks] = useState<FeatureCollection<LineString, PeakProperties>>();
   useEffect(() => {
-    async function load() {
-      const fetchedTrails = await fetchData<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
-      setTrails(fetchedTrails);
+    async function loadTrails() {
+      const data = await fetchData<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
+      setTrails(data);
     }
-    void load();
+    async function loadPeaks() {
+      const data = await fetchData<FeatureCollection<LineString, PeakProperties>>('generated/peaks.geojson');
+      setPeaks(data);
+    }
+    void loadTrails();
+    void loadPeaks();
   }, []);
   return (
     <main>
       <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
         <TileLayer {...tileLayerProps} />
+
+        {peaks && (
+          <GeoJSON data={peaks} data-testid="peaks"
+            pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 4, color: '#7F8386', weight: 2 })}
+            onEachFeature={(feature: Feature<Geometry, PeakProperties>, layer) => {
+              const { name } = feature.properties;
+
+              layer.bindTooltip(name, {
+                permanent: false,
+                direction: "right",
+                opacity: 0.8,
+              });
+            }}
+          />)}
 
         <LayersControl position="topright" collapsed={false}>
           <LayersControl.Overlay checked name="Display all trails">

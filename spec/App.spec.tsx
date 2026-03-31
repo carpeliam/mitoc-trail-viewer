@@ -44,3 +44,10 @@ it('clears selected peak filter when I click again on a peak', async () => {
 
   expect(await screen.findByTestId('routes')).toHaveAttribute('data-geojson-content', JSON.stringify(routes));
 });
+
+it('displays information about a route when I click on it', async () => {
+  render(<App />);
+
+  await userEvent.click(await screen.findByTestId('Franconia Ridge Fun!'));
+  expect(screen.getByText('Franconia Ridge Fun!')).toBeInTheDocument();
+});

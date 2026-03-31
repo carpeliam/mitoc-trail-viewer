@@ -18,7 +18,7 @@ vi.mock('react-leaflet', async () => {
       const features = data.type === 'FeatureCollection' ? data.features : [data];
       return (
         <div data-testid={testId} data-geojson-content={JSON.stringify(data)} onClick={(e) => e.stopPropagation()}>
-          {onEachFeature && features.map(f => (
+          {features.map(f => (
             <button
               key={f.id || f.properties?.name as string}
               data-testid={f.id || f.properties?.name as string}

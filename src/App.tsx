@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, GeoJSON, type TileLayerProps, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, type TileLayerProps, LayersControl, Pane } from 'react-leaflet';
 import { useEffect, useState } from 'react';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import * as L from 'leaflet';
@@ -44,6 +44,7 @@ export default function App() {
   const [routes, setRoutes] = useState<FeatureCollection<LineString, RouteProperties>>();
 
   const [selectedPeak, setSelectedPeak] = useState<Feature<Point>>();
+  const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
 
   const visibleRoutes = routes && (selectedPeak
     ? { ...routes, features: routes.features.filter(f => f.properties.peaks.includes(selectedPeak.id as string)) }
@@ -69,11 +70,22 @@ export default function App() {
   return (
     <main>
       <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
+        <Pane name="trails" style={{ zIndex: 200 }} />
+        <Pane name="routes" style={{ zIndex: 400 }} />
+        <Pane name="peaks" style={{ zIndex: 600 }} />
         <TileLayer {...tileLayerProps} />
 
-        {visibleRoutes && <GeoJSON data={visibleRoutes} data-testid="routes" key={selectedPeak?.id ?? 'all-routes'} />}
+        {visibleRoutes && <GeoJSON
+          data={visibleRoutes}
+          data-testid="routes"
+          pane="routes"
+          key={selectedPeak?.id ?? 'all-routes'}
+          onEachFeature={(feature: Feature<LineString, RouteProperties>, layer) => {
+            layer.on('click', () => setSelectedRoute(current => current?.properties.name === feature.properties.name ? undefined : feature));
+          }}
+        />}
         {peaks && (
-          <GeoJSON data={peaks} data-testid="peaks"
+          <GeoJSON data={peaks} data-testid="peaks" pane="peaks"
             pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
             onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
               const { name } = feature.properties;
@@ -89,10 +101,25 @@ export default function App() {
 
         <LayersControl position="topright" collapsed={false}>
           <LayersControl.Overlay checked name="Display all trails">
-            {trails && <GeoJSON data={trails} style={{ weight: 1 }} data-testid="trails" />}
+            {trails && <GeoJSON
+              data={trails}
+              data-testid="trails"
+              pane="trails"
+              style={{ weight: 1 }}
+              onEachFeature={(feature: Feature<LineString, TrailProperties>, layer) => {
+                if (feature.properties.name) {
+                  layer.bindPopup(feature.properties.name);
+                }
+              }}
+            />}
           </LayersControl.Overlay>
         </LayersControl>
       </MapContainer>
+      <aside hidden={!selectedRoute}>
+          <section>
+            <h2>{selectedRoute?.properties.name}</h2>
+          </section>
+      </aside>
     </main>
   );
 }

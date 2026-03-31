@@ -97,10 +97,56 @@ export const trails = {
     },
   ],
 };
+export const routes = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Katahdin via Cathedral',
+        total_elevation_gain: 1126.4,
+        date: '2019-08-20',
+        peaks: ['node/358211478'],
+        trips: [],
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-68.8665, 45.92231],
+          [-68.92144, 45.90444],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Franconia Ridge Fun!',
+        total_elevation_gain: 1186.8,
+        date: '2023-01-21',
+        peaks: [
+          'node/357730240',
+          'node/357730273',
+          'node/357730283',
+          'node/7288986418',
+        ],
+        url: 'https://mitoc-trips.mit.edu/trips/1889/',
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-71.68158, 44.1419],
+          [-71.64444, 44.16065],
+          [-71.68083, 44.14165],
+        ],
+      },
+    },
+  ],
+};
 
 export const handlers = [
   http.get('/generated/peaks.geojson', () => HttpResponse.json(peaks)),
   http.get('/generated/trails.geojson', () => HttpResponse.json(trails)),
+  http.get('/routes.geojson', () => HttpResponse.json(routes)),
   http.get(
     'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/256/:z/:x/:y@2x',
     () => HttpResponse.text(''),

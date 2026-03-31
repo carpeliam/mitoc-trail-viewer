@@ -1,7 +1,9 @@
 import { it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { peaks, trails } from './support/msw/handlers';
+import { peaks, trails, routes } from './support/msw/handlers';
 import App from '@/App.tsx';
+import userEvent from '@testing-library/user-event';
+import type { FeatureCollection, LineString } from 'geojson';
 
 it('renders', () => {
   render(<App />);
@@ -16,4 +18,29 @@ it('displays trails by default', async () => {
 it('displays peaks', async () => {
   render(<App />);
   expect(await screen.findByTestId('peaks')).toHaveAttribute('data-geojson-content', JSON.stringify(peaks));
+});
+
+it('displays all routes by default', async () => {
+  render(<App />);
+  expect(await screen.findByTestId('routes')).toHaveAttribute('data-geojson-content', JSON.stringify(routes));
+});
+
+it('displays relevant routes when I click on a peak', async () => {
+  render(<App />);
+  await userEvent.click(await screen.findByTestId('node/358211478'));
+  const routesLayer = await screen.findByTestId('routes');
+  const routesData = JSON.parse(routesLayer.getAttribute('data-geojson-content')!) as FeatureCollection<LineString, { name: string }>;
+  const routeNames = routesData.features.map(f => f.properties.name);
+
+  expect(routeNames).toContain('Katahdin via Cathedral');
+  expect(routeNames).not.toContain('Franconia Ridge Fun!');
+});
+
+it('clears selected peak filter when I click again on a peak', async () => {
+  render(<App />);
+  await userEvent.click(await screen.findByTestId('node/358211478'));
+  await new Promise((resolve) => setTimeout(resolve, 250)); // wait to avoid simulating double-click
+  await userEvent.click(await screen.findByTestId('node/358211478'));
+
+  expect(await screen.findByTestId('routes')).toHaveAttribute('data-geojson-content', JSON.stringify(routes));
 });

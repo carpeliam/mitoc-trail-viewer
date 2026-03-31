@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, GeoJSON, type TileLayerProps, LayersControl } from 'react-leaflet';
 import { useEffect, useState } from 'react';
-import type { Feature, FeatureCollection, Geometry, LineString } from 'geojson';
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
@@ -30,37 +30,60 @@ interface PeakProperties {
   ele: string;
 }
 
+interface RouteProperties {
+  name: string;
+  total_elevation_gain: number;
+  date: string;
+  peaks: string[];
+  trips: string[];
+}
+
 export default function App() {
   const [trails, setTrails] = useState<FeatureCollection<LineString, TrailProperties>>();
-  const [peaks, setPeaks] = useState<FeatureCollection<LineString, PeakProperties>>();
+  const [peaks, setPeaks] = useState<FeatureCollection<Point, PeakProperties>>();
+  const [routes, setRoutes] = useState<FeatureCollection<LineString, RouteProperties>>();
+
+  const [selectedPeak, setSelectedPeak] = useState<Feature<Point>>();
+
+  const visibleRoutes = routes && (selectedPeak
+    ? { ...routes, features: routes.features.filter(f => f.properties.peaks.includes(selectedPeak.id as string)) }
+    : routes);
+
   useEffect(() => {
     async function loadTrails() {
       const data = await fetchData<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
       setTrails(data);
     }
     async function loadPeaks() {
-      const data = await fetchData<FeatureCollection<LineString, PeakProperties>>('generated/peaks.geojson');
+      const data = await fetchData<FeatureCollection<Point, PeakProperties>>('generated/peaks.geojson');
       setPeaks(data);
+    }
+    async function loadRoutes() {
+      const data = await fetchData<FeatureCollection<LineString, RouteProperties>>('routes.geojson');
+      setRoutes(data);
     }
     void loadTrails();
     void loadPeaks();
+    void loadRoutes();
   }, []);
   return (
     <main>
       <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
         <TileLayer {...tileLayerProps} />
 
+        {visibleRoutes && <GeoJSON data={visibleRoutes} data-testid="routes" key={selectedPeak?.id ?? 'all-routes'} />}
         {peaks && (
           <GeoJSON data={peaks} data-testid="peaks"
-            pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 4, color: '#7F8386', weight: 2 })}
-            onEachFeature={(feature: Feature<Geometry, PeakProperties>, layer) => {
+            pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
+            onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
               const { name } = feature.properties;
 
               layer.bindTooltip(name, {
                 permanent: false,
-                direction: "right",
+                direction: 'right',
                 opacity: 0.8,
               });
+              layer.on('click', () => setSelectedPeak(current => current?.id === feature.id ? undefined : feature));
             }}
           />)}
 

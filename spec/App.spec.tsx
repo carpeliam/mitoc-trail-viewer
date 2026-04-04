@@ -1,8 +1,7 @@
 import { it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { peaks, trails, routes } from './support/msw/handlers';
 import App from '@/App.tsx';
-import userEvent from '@testing-library/user-event';
 import type { FeatureCollection, LineString } from 'geojson';
 
 it('renders', () => {
@@ -27,7 +26,7 @@ it('displays all routes by default', async () => {
 
 it('displays relevant routes when I click on a peak', async () => {
   render(<App />);
-  await userEvent.click(await screen.findByTestId('node/358211478'));
+  fireEvent.click(await screen.findByTestId('node/358211478'));
   const routesLayer = await screen.findByTestId('routes');
   const routesData = JSON.parse(routesLayer.getAttribute('data-geojson-content')!) as FeatureCollection<LineString, { name: string }>;
   const routeNames = routesData.features.map(f => f.properties.name);
@@ -38,16 +37,17 @@ it('displays relevant routes when I click on a peak', async () => {
 
 it('clears selected peak filter when I click again on a peak', async () => {
   render(<App />);
-  await userEvent.click(await screen.findByTestId('node/358211478'));
-  await new Promise((resolve) => setTimeout(resolve, 250)); // wait to avoid simulating double-click
-  await userEvent.click(await screen.findByTestId('node/358211478'));
+  fireEvent.click(await screen.findByTestId('node/358211478'));
+  fireEvent.click(screen.getByTestId('node/358211478'));
 
-  expect(await screen.findByTestId('routes')).toHaveAttribute('data-geojson-content', JSON.stringify(routes));
+  expect(screen.getByTestId('routes')).toHaveAttribute('data-geojson-content', JSON.stringify(routes));
 });
 
 it('displays information about a route when I click on it', async () => {
   render(<App />);
 
-  await userEvent.click(await screen.findByTestId('Franconia Ridge Fun!'));
-  expect(screen.getByText('Franconia Ridge Fun!')).toBeInTheDocument();
+  const mapContainer = document.getElementById('map-container')!;
+
+  fireEvent.click(await within(mapContainer).findByTestId('Franconia Ridge Fun!'));
+  expect(within(await screen.findByRole('complementary')).getByText('Franconia Ridge Fun!')).toBeInTheDocument();
 });

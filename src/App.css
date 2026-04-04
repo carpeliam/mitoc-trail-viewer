@@ -10,4 +10,15 @@ main {
 aside {
   width: 20%;
   padding: 1rem;
+
+  header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    button {
+      background-color: inherit;
+      border: none;
+      font-size: 2rem;
+    }
+  }
 }

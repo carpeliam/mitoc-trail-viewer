@@ -1,7 +1,8 @@
-import { MapContainer, TileLayer, GeoJSON, type TileLayerProps, LayersControl, Pane } from 'react-leaflet';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, useMapEvents, type TileLayerProps } from 'react-leaflet';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import * as L from 'leaflet';
+import type { RouteProperties } from '../types';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
@@ -28,14 +29,6 @@ interface PeakProperties {
   id: string;
   name: string;
   ele: string;
-}
-
-interface RouteProperties {
-  name: string;
-  total_elevation_gain: number;
-  date: string;
-  peaks: string[];
-  trips: string[];
 }
 
 export default function App() {
@@ -67,9 +60,28 @@ export default function App() {
     void loadPeaks();
     void loadRoutes();
   }, []);
+  function MapClickHandler({ onClick }: { onClick: (e: L.LeafletMouseEvent) => void }) {
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useMapEvents({
+      click(e) {
+        clearTimeout(timerRef.current ?? undefined);
+        timerRef.current = setTimeout(() => {
+          onClick(e);
+        }, 250);
+      },
+      dblclick() {
+        clearTimeout(timerRef.current ?? undefined);
+        timerRef.current = null;
+      },
+    });
+
+    return null;
+  }
   return (
     <main>
       <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
+        <MapClickHandler onClick={() => { setSelectedRoute(undefined); setSelectedPeak(undefined); }} />
         <Pane name="trails" style={{ zIndex: 200 }} />
         <Pane name="routes" style={{ zIndex: 400 }} />
         <Pane name="peaks" style={{ zIndex: 600 }} />
@@ -81,7 +93,18 @@ export default function App() {
           pane="routes"
           key={selectedPeak?.id ?? 'all-routes'}
           onEachFeature={(feature: Feature<LineString, RouteProperties>, layer) => {
-            layer.on('click', () => setSelectedRoute(current => current?.properties.name === feature.properties.name ? undefined : feature));
+            layer.on('click', (e) => {
+              L.DomEvent.stopPropagation(e);
+              setSelectedRoute(current => current?.properties.name === feature.properties.name ? undefined : feature);
+            });
+          }}
+          style={feature => {
+            const hue = Math.floor(Math.random() * 60) + 240;
+            return {
+              color: `hsl(${hue}, 70%, 50%)`,
+              weight: feature === selectedRoute ? 7 : 3,
+              opacity: feature === selectedRoute ? 0.9 : 0.6,
+            };
           }}
         />}
         {peaks && (
@@ -95,7 +118,10 @@ export default function App() {
                 direction: 'right',
                 opacity: 0.8,
               });
-              layer.on('click', () => setSelectedPeak(current => current?.id === feature.id ? undefined : feature));
+              layer.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                setSelectedPeak(current => current?.id === feature.id ? undefined : feature);
+              });
             }}
           />)}
 
@@ -116,9 +142,19 @@ export default function App() {
         </LayersControl>
       </MapContainer>
       <aside hidden={!selectedRoute}>
-          <section>
+        <section>
+          <header>
             <h2>{selectedRoute?.properties.name}</h2>
-          </section>
+            <button aria-label="Close" type="button" onClick={() => setSelectedRoute(undefined)}>
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </header>
+          <ul>
+            {(selectedRoute?.properties.trips ?? []).map(trip => (
+              <li key={`${trip.date}${trip.url}`}><a href={trip.url} target="_blank">{trip.date}: {trip.name}</a></li>
+            ))}
+          </ul>
+        </section>
       </aside>
     </main>
   );

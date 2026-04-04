@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
 import process from 'node:process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { overpassJson, type OverpassNode, type OverpassWay } from 'overpass-ts';
 import osmtogeojson from 'osmtogeojson';
 import { simplify } from '@turf/turf';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const generatedDir = path.join(__dirname, '..', 'public', 'generated');
 
 const OVERPASS_QUERY = `
 [out:json][timeout:180];
@@ -48,7 +53,7 @@ out tags center geom;
 `;
 
 async function fetchOSM() {
-  await mkdir('./public/generated', { recursive: true });
+  mkdirSync('./public/generated', { recursive: true });
 
   console.log('Fetching OSM data from Overpass…');
   const data = await overpassJson(OVERPASS_QUERY);
@@ -72,8 +77,8 @@ async function fetchOSM() {
         console.error('unexpected element', element);
     }
   });
-  for (const [filename, elements] of Object.entries({ peaks, trails })) {
-    console.log(`Converting ${filename} to GeoJSON…`);
+  for (const [type, elements] of Object.entries({ peaks, trails })) {
+    console.log(`Converting ${type} to GeoJSON…`);
     const geojson = osmtogeojson({ elements });
     const simplified = simplify(geojson, {
       tolerance: 0.00001,
@@ -81,13 +86,17 @@ async function fetchOSM() {
     });
 
     console.log('Writing file…');
-    await writeFile(`./public/generated/${filename}.geojson`, JSON.stringify(simplified));
+    writeFileSync(path.join(generatedDir, `${type}.geojson`), JSON.stringify(simplified));
   }
 
   console.log('Done.');
 }
 
-fetchOSM().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (['peaks', 'trails'].every(type => existsSync(path.join(generatedDir, `${type}.geojson`)))) {
+  console.log('OSM data already exists, skipping fetch.');
+} else {
+  fetchOSM().catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}

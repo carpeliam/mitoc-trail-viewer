@@ -23,6 +23,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache public/generated content
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/public/generated
+          key: ${{ runner.os }}-generated-data
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:

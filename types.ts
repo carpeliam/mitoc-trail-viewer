@@ -4,6 +4,17 @@ export interface Trip {
   date: string;
 }
 
+export interface TrailProperties {
+  id: string;
+  name: string;
+}
+
+export interface PeakProperties {
+  id: string;
+  name: string;
+  ele: string;
+}
+
 export interface RouteProperties {
   name: string;
   total_elevation_gain: number;

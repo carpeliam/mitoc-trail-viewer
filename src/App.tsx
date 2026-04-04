@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, useMapEvents, type TileLayerProps } from 'react-leaflet';
+import { useState } from 'react';
+import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, type TileLayerProps } from 'react-leaflet';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import * as L from 'leaflet';
-import type { RouteProperties } from '../types';
+import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
+import MapBlurHandler from './MapBlurHandler';
+import { useGeoJSON } from './data';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
-async function fetchData<T>(url: string) {
-  return await fetch(import.meta.env.BASE_URL + url).then(res => res.json()) as T;
-}
+const METERS_TO_FEET = 3.28084;
 
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
   ? {
@@ -20,68 +20,22 @@ const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   };
 
-interface TrailProperties {
-  id: string;
-  name: string;
-}
-
-interface PeakProperties {
-  id: string;
-  name: string;
-  ele: string;
-}
-
 export default function App() {
-  const [trails, setTrails] = useState<FeatureCollection<LineString, TrailProperties>>();
-  const [peaks, setPeaks] = useState<FeatureCollection<Point, PeakProperties>>();
-  const [routes, setRoutes] = useState<FeatureCollection<LineString, RouteProperties>>();
+  const trails = useGeoJSON<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
+  const peaks = useGeoJSON<FeatureCollection<Point, PeakProperties>>('generated/peaks.geojson');
+  const routes = useGeoJSON<FeatureCollection<LineString, RouteProperties>>('routes.geojson');
 
-  const [selectedPeak, setSelectedPeak] = useState<Feature<Point>>();
+  const [selectedPeak, setSelectedPeak] = useState<Feature<Point, PeakProperties>>();
   const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
 
   const visibleRoutes = routes && (selectedPeak
     ? { ...routes, features: routes.features.filter(f => f.properties.peaks.includes(selectedPeak.id as string)) }
     : routes);
 
-  useEffect(() => {
-    async function loadTrails() {
-      const data = await fetchData<FeatureCollection<LineString, TrailProperties>>('generated/trails.geojson');
-      setTrails(data);
-    }
-    async function loadPeaks() {
-      const data = await fetchData<FeatureCollection<Point, PeakProperties>>('generated/peaks.geojson');
-      setPeaks(data);
-    }
-    async function loadRoutes() {
-      const data = await fetchData<FeatureCollection<LineString, RouteProperties>>('routes.geojson');
-      setRoutes(data);
-    }
-    void loadTrails();
-    void loadPeaks();
-    void loadRoutes();
-  }, []);
-  function MapClickHandler({ onClick }: { onClick: (e: L.LeafletMouseEvent) => void }) {
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useMapEvents({
-      click(e) {
-        clearTimeout(timerRef.current ?? undefined);
-        timerRef.current = setTimeout(() => {
-          onClick(e);
-        }, 250);
-      },
-      dblclick() {
-        clearTimeout(timerRef.current ?? undefined);
-        timerRef.current = null;
-      },
-    });
-
-    return null;
-  }
   return (
     <main>
       <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
-        <MapClickHandler onClick={() => { setSelectedRoute(undefined); setSelectedPeak(undefined); }} />
+        <MapBlurHandler onBlur={() => { setSelectedRoute(undefined); setSelectedPeak(undefined); }} />
         <Pane name="trails" style={{ zIndex: 200 }} />
         <Pane name="routes" style={{ zIndex: 400 }} />
         <Pane name="peaks" style={{ zIndex: 600 }} />
@@ -141,21 +95,45 @@ export default function App() {
           </LayersControl.Overlay>
         </LayersControl>
       </MapContainer>
-      <aside hidden={!selectedRoute}>
-        <section>
-          <header>
-            <h2>{selectedRoute?.properties.name}</h2>
-            <button aria-label="Close" type="button" onClick={() => setSelectedRoute(undefined)}>
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </header>
-          <ul>
-            {(selectedRoute?.properties.trips ?? []).map(trip => (
-              <li key={`${trip.date}${trip.url}`}><a href={trip.url} target="_blank">{trip.date}: {trip.name}</a></li>
-            ))}
-          </ul>
-        </section>
+      <aside hidden={!selectedRoute && !selectedPeak}>
+        {selectedRoute && <RouteDetails route={selectedRoute} onClose={() => setSelectedRoute(undefined)} />}
+        {selectedPeak && <PeakDetails peak={selectedPeak} onClose={() => setSelectedPeak(undefined)} />}
       </aside>
     </main>
+  );
+}
+
+function PeakDetails({ peak, onClose }: { peak: Feature<Point, PeakProperties>, onClose: () => void }) {
+  const { name, ele } = peak.properties;
+  const elevation = parseFloat(ele) * METERS_TO_FEET;
+  return (
+    <section>
+      <header>
+        <h2>{name}</h2>
+        <button aria-label="Close" type="button" onClick={onClose}>
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <p>Elevation: {elevation} ft</p>
+    </section>
+  );
+}
+
+function RouteDetails({ route, onClose }: { route: Feature<LineString, RouteProperties>, onClose: () => void }) {
+  const { name, trips } = route.properties;
+  return (
+    <section>
+      <header>
+        <h2>{name}</h2>
+        <button aria-label="Close" type="button" onClick={onClose}>
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <ul>
+        {trips.map(trip => (
+          <li key={`${trip.date}${trip.url}`}><a href={trip.url} target="_blank">{trip.date}: {trip.name}</a></li>
+        ))}
+      </ul>
+    </section>
   );
 }

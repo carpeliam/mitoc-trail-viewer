@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import { bbox } from '@turf/bbox';
-import type { Feature, LineString, Point } from 'geojson';
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { PeakProperties, RouteProperties } from '../types';
 
 export function MapBlurHandler({ onBlur: onBlur }: { onBlur: (e: L.LeafletMouseEvent) => void }) {
@@ -35,15 +35,20 @@ export function RouteWatcher({ selectedRoute }: { selectedRoute: Feature<LineStr
   return null;
 }
 
-export function PeakWatcher({ selectedPeak }: { selectedPeak: Feature<Point, PeakProperties> | undefined }) {
+export function PeakWatcher({ selectedPeak, visibleRoutes }: { selectedPeak: Feature<Point, PeakProperties> | undefined; visibleRoutes: FeatureCollection<LineString, RouteProperties> | null }) {
   const map = useMap();
   useEffect(() => {
     if (selectedPeak) {
-      const [lng, lat] = selectedPeak.geometry.coordinates;
-      const zoom = Math.max(map.getZoom(), 14);
-      map.flyTo([lat, lng], zoom);
+      if (visibleRoutes?.features.length) {
+        const [minLng, minLat, maxLng, maxLat] = bbox(visibleRoutes);
+        map.flyToBounds([[minLat, minLng], [maxLat, maxLng]], { maxZoom: 14 });
+      } else {
+        const [lng, lat] = selectedPeak.geometry.coordinates;
+        const zoom = Math.max(map.getZoom(), 14);
+        map.flyTo([lat, lng], zoom);
+      }
     }
-  }, [map, selectedPeak]);
+  }, [map, selectedPeak, visibleRoutes]);
 
   return null;
 }

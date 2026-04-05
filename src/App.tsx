@@ -109,7 +109,7 @@ export default function App() {
         </LayersControl>
         <SettingsControl onToggle={() => setIsSettingsOpen(open => !open)} position="topright" />
         <RouteWatcher selectedRoute={selectedRoute} />
-        <PeakWatcher selectedPeak={selectedPeak} />
+        <PeakWatcher selectedPeak={selectedPeak} visibleRoutes={visibleRoutes} />
       </MapContainer>
       <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
         {isSettingsOpen && <Settings onClose={() => setIsSettingsOpen(false)} />}

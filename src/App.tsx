@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, type TileLayerProps } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import * as L from 'leaflet';
 import SettingsControl from './SettingsControl';
 import { MapBlurHandler, PeakWatcher, RouteWatcher } from './map-friends';
@@ -10,6 +11,8 @@ import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
 
 import 'leaflet/dist/leaflet.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 import './App.css';
 
 const METERS_TO_FEET = 3.28084;
@@ -69,24 +72,26 @@ export default function App() {
             };
           }}
         />}
-        {peaks && (
-          <GeoJSON data={peaks} data-testid="peaks" pane="peaks"
-            pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
-            onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
-              const { name } = feature.properties;
+        <MarkerClusterGroup chunkedLoading maxClusterRadius={(zoomLevel: number) => zoomLevel > 9 ? 8 : 80} clusterPane="peaks">
+          {peaks && (
+            <GeoJSON data={peaks} data-testid="peaks" pane="peaks"
+              pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
+              onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
+                const { name } = feature.properties;
 
-              layer.bindTooltip(name, {
-                permanent: false,
-                direction: 'right',
-                opacity: 0.8,
-              });
-              layer.on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
-                setSelectedPeak(current => current?.id === feature.id ? undefined : feature);
-              });
-            }}
-          />)}
-
+                layer.bindTooltip(name, {
+                  permanent: false,
+                  direction: 'right',
+                  opacity: 0.8,
+                });
+                layer.on('click', (e) => {
+                  L.DomEvent.stopPropagation(e);
+                  setSelectedPeak(current => current?.id === feature.id ? undefined : feature);
+                });
+              }}
+            />
+          )}
+        </MarkerClusterGroup>
         <LayersControl position="bottomleft" collapsed={false}>
           <LayersControl.Overlay checked name="Display all trails">
             {trails && <GeoJSON

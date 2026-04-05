@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, type TileLayerProps } from 'react-leaflet';
-import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import * as L from 'leaflet';
-import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
-import MapBlurHandler from './MapBlurHandler';
+import SettingsControl from './SettingsControl';
+import { MapBlurHandler, PeakWatcher, RouteWatcher } from './map-friends';
+
 import { useGeoJSON } from './data';
+
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
+
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
 const METERS_TO_FEET = 3.28084;
+function metersToFeet(meters: number): string {
+  return Math.round(meters * METERS_TO_FEET).toLocaleString();
+}
 
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
   ? {
@@ -27,6 +34,7 @@ export default function App() {
 
   const [selectedPeak, setSelectedPeak] = useState<Feature<Point, PeakProperties>>();
   const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const visibleRoutes = routes && (selectedPeak
     ? { ...routes, features: routes.features.filter(f => f.properties.peaks.includes(selectedPeak.id as string)) }
@@ -79,7 +87,7 @@ export default function App() {
             }}
           />)}
 
-        <LayersControl position="topright" collapsed={false}>
+        <LayersControl position="bottomleft" collapsed={false}>
           <LayersControl.Overlay checked name="Display all trails">
             {trails && <GeoJSON
               data={trails}
@@ -94,46 +102,85 @@ export default function App() {
             />}
           </LayersControl.Overlay>
         </LayersControl>
+        <SettingsControl onToggle={() => setIsSettingsOpen(open => !open)} position="topright" />
+        <RouteWatcher selectedRoute={selectedRoute} />
+        <PeakWatcher selectedPeak={selectedPeak} />
       </MapContainer>
-      <aside hidden={!selectedRoute && !selectedPeak}>
-        {selectedRoute && <RouteDetails route={selectedRoute} onClose={() => setSelectedRoute(undefined)} />}
+      <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
+        {isSettingsOpen && <Settings onClose={() => setIsSettingsOpen(false)} />}
+        {selectedRoute && <RouteDetails route={selectedRoute} allPeaks={peaks} setSelectedPeak={setSelectedPeak} onClose={() => setSelectedRoute(undefined)} />}
         {selectedPeak && <PeakDetails peak={selectedPeak} onClose={() => setSelectedPeak(undefined)} />}
       </aside>
     </main>
   );
 }
 
-function PeakDetails({ peak, onClose }: { peak: Feature<Point, PeakProperties>, onClose: () => void }) {
-  const { name, ele } = peak.properties;
-  const elevation = parseFloat(ele) * METERS_TO_FEET;
+function SidebarPanel({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <section>
       <header>
-        <h2>{name}</h2>
+        <h2>{title}</h2>
         <button aria-label="Close" type="button" onClick={onClose}>
           <span aria-hidden="true">&times;</span>
         </button>
       </header>
-      <p>Elevation: {elevation} ft</p>
+      {children}
     </section>
   );
 }
 
-function RouteDetails({ route, onClose }: { route: Feature<LineString, RouteProperties>, onClose: () => void }) {
-  const { name, trips } = route.properties;
+function Settings({ onClose }: { onClose: () => void }) {
   return (
-    <section>
-      <header>
-        <h2>{name}</h2>
-        <button aria-label="Close" type="button" onClick={onClose}>
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </header>
+    <SidebarPanel title="Settings" onClose={onClose}>
+      <p></p>
+    </SidebarPanel>
+  );
+}
+
+function PeakDetails({ peak, onClose }: { peak: Feature<Point, PeakProperties>, onClose: () => void }) {
+  const { name, ele } = peak.properties;
+  const elevation = metersToFeet(parseFloat(ele));
+  return (
+    <SidebarPanel title={name} onClose={onClose}>
+      <p>Elevation: {elevation} ft</p>
+    </SidebarPanel>
+  );
+}
+
+interface RouteDetailsProps {
+  route: Feature<LineString, RouteProperties>;
+  onClose: () => void;
+  setSelectedPeak: (peak: Feature<Point, PeakProperties>) => void;
+  allPeaks: FeatureCollection<Point, PeakProperties> | null;
+}
+
+function RouteDetails({ route, onClose, setSelectedPeak, allPeaks }: RouteDetailsProps) {
+  const { name, trips, total_elevation_gain, peaks } = route.properties;
+  return (
+    <SidebarPanel title={name} onClose={onClose}>
+      <p>Elevation: {metersToFeet(total_elevation_gain)} ft</p>
+      <h3>Peaks</h3>
+      <ul>
+        {peaks.map(peak => {
+          const feature = allPeaks?.features.find(p => p.id === peak);
+          return (feature)
+            ? (
+              <li key={peak}>
+                <a href="#" onClick={e => { e.preventDefault(); setSelectedPeak(feature); }}>
+                  {feature.properties.name}
+                  {' '}
+                  ({metersToFeet(parseFloat(feature.properties.ele))} ft)
+                </a>
+              </li>)
+            : null;
+        })}
+      </ul>
+      <h3>Trips</h3>
       <ul>
         {trips.map(trip => (
           <li key={`${trip.date}${trip.url}`}><a href={trip.url} target="_blank">{trip.date}: {trip.name}</a></li>
         ))}
       </ul>
-    </section>
+    </SidebarPanel>
   );
 }

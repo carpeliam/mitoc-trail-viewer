@@ -21,7 +21,7 @@ export interface MitocTrip {
   summary: string;
   difficulty_rating: string;
   level: string | null;
-  winter_terrain_level: string | null;
+  winter_terrain_level: 'A' | 'B' | 'C' | null;
   prereqs: string;
   notes: string;
   url: string;

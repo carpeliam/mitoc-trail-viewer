@@ -4,7 +4,7 @@ import { bbox } from '@turf/bbox';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { PeakProperties, RouteProperties } from '../types';
 
-export function MapBlurHandler({ onBlur: onBlur }: { onBlur: (e: L.LeafletMouseEvent) => void }) {
+export function MapBlurHandler({ onBlur: onBlur, delay = 250 }: { onBlur: (e: L.LeafletMouseEvent) => void, delay?: number }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useMapEvents({
@@ -12,7 +12,7 @@ export function MapBlurHandler({ onBlur: onBlur }: { onBlur: (e: L.LeafletMouseE
       clearTimeout(timerRef.current ?? undefined);
       timerRef.current = setTimeout(() => {
         onBlur(e);
-      }, 250);
+      }, delay);
     },
     dblclick() {
       clearTimeout(timerRef.current ?? undefined);

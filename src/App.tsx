@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { GeoJSON, LayersControl, MapContainer, Pane, TileLayer, type TileLayerProps } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import * as L from 'leaflet';
@@ -6,6 +6,7 @@ import SettingsControl from './SettingsControl';
 import { MapBlurHandler, PeakWatcher, RouteWatcher } from './map-friends';
 
 import { useGeoJSON } from './data';
+import { useSettings, type Settings, type WinterTerrainLevelSetting } from './settings';
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
@@ -18,6 +19,23 @@ import './App.css';
 const METERS_TO_FEET = 3.28084;
 function metersToFeet(meters: number): string {
   return Math.round(meters * METERS_TO_FEET).toLocaleString();
+}
+
+function hueFor(feature: Feature | undefined): number {
+  const name = feature?.properties?.name as string;
+  if (!name) return 240; // blue
+  let hash = 0;
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) & 0xffff;
+  }
+  return (hash % 60) + 240;
+}
+
+function visibleRoutesKey(settings: Settings, selectedPeak: Feature<Point, PeakProperties> | undefined) {
+  const activeTerrainLevels = (Object.keys(settings.visibleTerrainLevels) as WinterTerrainLevelSetting[])
+    .filter(k => settings.visibleTerrainLevels[k])
+    .join();
+  return `${selectedPeak?.id ?? 'all-routes'}-${activeTerrainLevels}`;
 }
 
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
@@ -38,10 +56,21 @@ export default function App() {
   const [selectedPeak, setSelectedPeak] = useState<Feature<Point, PeakProperties>>();
   const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settings, updateTerrainLevel] = useSettings();
 
-  const visibleRoutes = routes && (selectedPeak
-    ? { ...routes, features: routes.features.filter(f => f.properties.peaks.includes(selectedPeak.id as string)) }
-    : routes);
+  const visibleRoutes = useMemo(() => {
+    if (!routes) return null;
+    return {
+      ...routes,
+      features: routes.features.filter(f => {
+        const passesSelectedPeak = !selectedPeak || f.properties.peaks.includes(selectedPeak.id as string);
+        const passesWinterTerrainLevel = f.properties.trips.some(({ winterTerrainLevel }) => (
+          settings.visibleTerrainLevels[winterTerrainLevel ?? 'summer']
+        ));
+        return passesSelectedPeak && passesWinterTerrainLevel;
+      }),
+    };
+  }, [routes, selectedPeak, settings.visibleTerrainLevels]);
 
   return (
     <main>
@@ -56,7 +85,7 @@ export default function App() {
           data={visibleRoutes}
           data-testid="routes"
           pane="routes"
-          key={selectedPeak?.id ?? 'all-routes'}
+          key={visibleRoutesKey(settings, selectedPeak)}
           onEachFeature={(feature: Feature<LineString, RouteProperties>, layer) => {
             layer.on('click', (e) => {
               L.DomEvent.stopPropagation(e);
@@ -64,7 +93,7 @@ export default function App() {
             });
           }}
           style={feature => {
-            const hue = Math.floor(Math.random() * 60) + 240;
+            const hue = hueFor(feature);
             return {
               color: `hsl(${hue}, 70%, 50%)`,
               weight: feature === selectedRoute ? 7 : 3,
@@ -112,7 +141,7 @@ export default function App() {
         <PeakWatcher selectedPeak={selectedPeak} visibleRoutes={visibleRoutes} />
       </MapContainer>
       <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
-        {isSettingsOpen && <Settings onClose={() => setIsSettingsOpen(false)} />}
+        {isSettingsOpen && <Settings settings={settings} updateTerrainLevel={updateTerrainLevel} onClose={() => setIsSettingsOpen(false)} />}
         {selectedRoute && <RouteDetails route={selectedRoute} allPeaks={peaks} setSelectedPeak={setSelectedPeak} onClose={() => setSelectedRoute(undefined)} />}
         {selectedPeak && <PeakDetails peak={selectedPeak} onClose={() => setSelectedPeak(undefined)} />}
       </aside>
@@ -134,10 +163,16 @@ function SidebarPanel({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
-function Settings({ onClose }: { onClose: () => void }) {
+function Settings({ settings, updateTerrainLevel, onClose }: { settings: Settings, updateTerrainLevel: (level: WinterTerrainLevelSetting, value: boolean) => void, onClose: () => void }) {
   return (
     <SidebarPanel title="Settings" onClose={onClose}>
-      <p></p>
+      <form>
+        <h3>Filter by Terrain Level</h3>
+        <label><input type="checkbox" checked={settings.visibleTerrainLevels.A} onChange={() => updateTerrainLevel('A', !settings.visibleTerrainLevels.A)} /> A</label>
+        <label><input type="checkbox" checked={settings.visibleTerrainLevels.B} onChange={() => updateTerrainLevel('B', !settings.visibleTerrainLevels.B)} /> B</label>
+        <label><input type="checkbox" checked={settings.visibleTerrainLevels.C} onChange={() => updateTerrainLevel('C', !settings.visibleTerrainLevels.C)} /> C</label>
+        <label><input type="checkbox" checked={settings.visibleTerrainLevels.summer} onChange={() => updateTerrainLevel('summer', !settings.visibleTerrainLevels.summer)} /> 3-Season</label>
+      </form>
     </SidebarPanel>
   );
 }
@@ -163,7 +198,7 @@ function RouteDetails({ route, onClose, setSelectedPeak, allPeaks }: RouteDetail
   const { name, trips, total_elevation_gain, peaks } = route.properties;
   return (
     <SidebarPanel title={name} onClose={onClose}>
-      <p>Elevation: {metersToFeet(total_elevation_gain)} ft</p>
+      <p>Elevation gain: {metersToFeet(total_elevation_gain)} ft</p>
       <h3>Peaks</h3>
       <ul>
         {peaks.map(peak => {

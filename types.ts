@@ -1,7 +1,10 @@
+export type WinterTerrainLevel = 'A' | 'B' | 'C';
+
 export interface Trip {
   name: string;
   url: string;
   date: string;
+  winterTerrainLevel?: WinterTerrainLevel;
 }
 
 export interface TrailProperties {

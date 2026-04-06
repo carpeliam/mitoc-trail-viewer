@@ -55,7 +55,7 @@ export const routes: FeatureCollection<LineString, RouteProperties> = featureCol
     trips: [{ date: '2019-08-20', name: '', url: '' }],
   }),
   lineString([[-71.68158, 44.1419], [-71.64444, 44.16065], [-71.68083, 44.14165]], {
-    name: 'Franconia Ridge Fun!',
+    name: 'Franconia Ridge',
     total_elevation_gain: 1186.8,
     peaks: [
       'node/357730240',
@@ -63,11 +63,14 @@ export const routes: FeatureCollection<LineString, RouteProperties> = featureCol
       'node/357730283',
       'node/7288986418',
     ],
-    trips: [{
-      date: '2023-01-21',
-      name: 'Franconia Ridge Fun!',
-      url: 'https://mitoc-trips.mit.edu/trips/1889/',
-    }],
+    trips: [
+      {
+        date: '2023-01-21',
+        name: 'Franconia Ridge Fun!',
+        url: 'https://mitoc-trips.mit.edu/trips/1889/',
+        winterTerrainLevel: 'C',
+      },
+    ],
   }),
 ]);
 

@@ -31,6 +31,6 @@ export default function SettingsControl({ onToggle, position }: SettingsControlP
   }, [map, position]);
 
   return container
-    ? createPortal(<a href="#" title="Settings" onClick={(e) => { e.preventDefault(); onToggle(); }}>⚙️</a>, container)
+    ? createPortal(<a href="#" title="Settings" aria-label="Settings" onClick={(e) => { e.preventDefault(); onToggle(); }}>⚙️</a>, container)
     : null;
 }

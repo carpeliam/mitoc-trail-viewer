@@ -30,6 +30,9 @@ routes.features.forEach(feature => {
     if (mitocTrip) {
       console.log('adding', trip.url, mitocTrip.name);
       trip.name = mitocTrip.name;
+      if (mitocTrip.winter_terrain_level) {
+        trip.winterTerrainLevel = mitocTrip.winter_terrain_level;
+      }
     }
   });
 });

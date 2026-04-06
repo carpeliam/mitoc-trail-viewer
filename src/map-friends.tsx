@@ -27,6 +27,7 @@ export function RouteWatcher({ selectedRoute }: { selectedRoute: Feature<LineStr
   const map = useMap();
   useEffect(() => {
     if (selectedRoute) {
+      map.invalidateSize();
       const [minLng, minLat, maxLng, maxLat] = bbox(selectedRoute);
       map.fitBounds([[minLat, minLng], [maxLat, maxLng]]);
     }
@@ -39,6 +40,7 @@ export function PeakWatcher({ selectedPeak, visibleRoutes }: { selectedPeak: Fea
   const map = useMap();
   useEffect(() => {
     if (selectedPeak) {
+      map.invalidateSize();
       if (visibleRoutes?.features.length) {
         const [minLng, minLat, maxLng, maxLat] = bbox(visibleRoutes);
         map.flyToBounds([[minLat, minLng], [maxLat, maxLng]], { maxZoom: 14 });

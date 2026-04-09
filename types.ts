@@ -5,6 +5,7 @@ export interface Trip {
   url: string;
   date: string;
   winterTerrainLevel?: WinterTerrainLevel;
+  keywords?: string[];
 }
 
 export interface TrailProperties {

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { FeatureCollection, LineString } from 'geojson';
 import type { RouteProperties } from '../types';
-import { keysToCamelCase, type MitocTrip } from './support/mitoc.ts';
+import { keysToCamelCase, keywordsFor, type MitocTrip } from './support/mitoc.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
@@ -24,18 +24,25 @@ const routes: FeatureCollection<LineString, RouteProperties> = fs.existsSync(rou
   ? JSON.parse(fs.readFileSync(routesFile, 'utf-8')) as FeatureCollection<LineString, RouteProperties>
   : { type: 'FeatureCollection', features: [] };
 
-routes.features.forEach(feature => {
-  feature.properties.trips.forEach(trip => {
+
+for (const feature of routes.features) {
+  for (const trip of feature.properties.trips) {
     const mitocTrip = mitoc.find(t => t.url === trip.url);
     if (mitocTrip) {
       console.log('adding', trip.url, mitocTrip.name);
       trip.name = mitocTrip.name;
+
       if (mitocTrip.winter_terrain_level) {
         trip.winterTerrainLevel = mitocTrip.winter_terrain_level;
       }
+
+      const keywords = await keywordsFor(mitocTrip);
+      if (keywords.length > 0) {
+        trip.keywords = [...trip.keywords ?? [], ...keywords];
+      }
     }
-  });
-});
+  }
+}
 
 fs.writeFileSync(routesFile, JSON.stringify(routes), 'utf-8');
 

@@ -101,26 +101,6 @@ export default function App() {
             };
           }}
         />}
-        <MarkerClusterGroup chunkedLoading maxClusterRadius={(zoomLevel: number) => zoomLevel > 9 ? 8 : 80} clusterPane="peaks">
-          {peaks && (
-            <GeoJSON data={peaks} data-testid="peaks" pane="peaks"
-              pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
-              onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
-                const { name } = feature.properties;
-
-                layer.bindTooltip(name, {
-                  permanent: false,
-                  direction: 'right',
-                  opacity: 0.8,
-                });
-                layer.on('click', (e) => {
-                  L.DomEvent.stopPropagation(e);
-                  setSelectedPeak(current => current?.id === feature.id ? undefined : feature);
-                });
-              }}
-            />
-          )}
-        </MarkerClusterGroup>
         <LayersControl position="bottomleft" collapsed={false}>
           <LayersControl.Overlay checked name="Display all trails">
             {trails && <GeoJSON
@@ -134,6 +114,28 @@ export default function App() {
                 }
               }}
             />}
+          </LayersControl.Overlay>
+          <LayersControl.Overlay checked name="Display all peaks">
+            <MarkerClusterGroup chunkedLoading maxClusterRadius={(zoomLevel: number) => zoomLevel > 9 ? 8 : 80} clusterPane="peaks">
+              {peaks && (
+                <GeoJSON data={peaks} data-testid="peaks" pane="peaks"
+                  pointToLayer={(_point, latlng) => L.circleMarker(latlng, { radius: 6, color: '#7F8386', weight: 2 })}
+                  onEachFeature={(feature: Feature<Point, PeakProperties>, layer) => {
+                    const { name } = feature.properties;
+
+                    layer.bindTooltip(name, {
+                      permanent: false,
+                      direction: 'right',
+                      opacity: 0.8,
+                    });
+                    layer.on('click', (e) => {
+                      L.DomEvent.stopPropagation(e);
+                      setSelectedPeak(current => current?.id === feature.id ? undefined : feature);
+                    });
+                  }}
+                />
+              )}
+            </MarkerClusterGroup>
           </LayersControl.Overlay>
         </LayersControl>
         <SettingsControl onToggle={() => setIsSettingsOpen(open => !open)} position="topright" />

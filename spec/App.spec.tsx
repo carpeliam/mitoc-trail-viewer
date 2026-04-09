@@ -14,7 +14,7 @@ it('displays trails by default', async () => {
   expect(await screen.findByTestId('trails')).toHaveAttribute('data-geojson-content', JSON.stringify(trails));
 });
 
-it('displays peaks', async () => {
+it('displays peaks by default', async () => {
   render(<App />);
   expect(await screen.findByTestId('peaks')).toHaveAttribute('data-geojson-content', JSON.stringify(peaks));
 });

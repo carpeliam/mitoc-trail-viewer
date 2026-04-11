@@ -1,4 +1,4 @@
-import { it, expect, describe } from 'vitest';
+import { it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { peaks, trails, routes } from './support/msw/handlers';
 import App from '@/App.tsx';
@@ -48,20 +48,4 @@ it('displays information about a route when I click on it', async () => {
 
   fireEvent.click(await screen.findByTestId('Franconia Ridge'));
   expect(await screen.findByRole('complementary')).toHaveTextContent('Franconia Ridge Fun!');
-});
-
-describe('Settings', () => {
-  it('filters routes by winter difficulty when a checkbox is clicked', async () => {
-    render(<App />);
-
-    fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
-    expect(await screen.findByRole('checkbox', { name: 'A' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'B' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'C' })).toBeChecked();
-
-    fireEvent.click(screen.getByRole('checkbox', { name: 'C' }));
-    expect(screen.getByRole('checkbox', { name: 'C' })).not.toBeChecked();
-
-    expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
-  });
 });

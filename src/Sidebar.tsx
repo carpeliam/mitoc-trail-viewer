@@ -1,0 +1,131 @@
+import type { Settings, WinterTerrainLevelSetting } from './settings';
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import type { PeakProperties, RouteProperties } from '../types';
+import './Sidebar.css';
+
+const METERS_TO_FEET = 3.28084;
+function metersToFeet(meters: number): string {
+  return Math.round(meters * METERS_TO_FEET).toLocaleString();
+}
+
+interface SidebarPanelProps {
+  title: string;
+  type?: string;
+  className?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+export function SidebarPanel({ title, type, className, onClose, children }: SidebarPanelProps) {
+  return (
+    <section className={`sidebar-card ${className ?? ''}`}>
+      <header>
+        <div>
+          {type && <span>{type}</span>}
+          <h2>{title}</h2>
+        </div>
+        <button aria-label="Close" type="button" onClick={onClose}>
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+interface SettingsPanelProps {
+  settings: Settings;
+  availableKeywords: string[];
+  updateTerrainLevel: (level: WinterTerrainLevelSetting, value: boolean) => void;
+  toggleKeyword: (keyword: string) => void;
+  onClose: () => void;
+}
+export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel, toggleKeyword, onClose }: SettingsPanelProps) {
+  const { visibleTerrainLevels, activeKeywords } = settings;
+  return (
+    <SidebarPanel title="Settings" className="settings" onClose={onClose}>
+      <form>
+        <h3>Terrain level</h3>
+        <div style={{ display: 'flex', gap: '0.25rem' }}>
+          <label><input type="checkbox" checked={visibleTerrainLevels.A} onChange={() => updateTerrainLevel('A', !visibleTerrainLevels.A)} /> A</label>
+          <label><input type="checkbox" checked={visibleTerrainLevels.B} onChange={() => updateTerrainLevel('B', !visibleTerrainLevels.B)} /> B</label>
+          <label><input type="checkbox" checked={visibleTerrainLevels.C} onChange={() => updateTerrainLevel('C', !visibleTerrainLevels.C)} /> C</label>
+          <label><input type="checkbox" checked={visibleTerrainLevels.summer} onChange={() => updateTerrainLevel('summer', !visibleTerrainLevels.summer)} /> 3-Season</label>
+        </div>
+        <h3>Keywords</h3>
+        <div className="keyword-list">
+          {availableKeywords.map(keyword => (
+            <label key={keyword}>
+              <input
+                type="checkbox"
+                checked={activeKeywords.has(keyword)}
+                onChange={() => toggleKeyword(keyword)}
+              />
+              {keyword}
+            </label>
+          ))}
+        </div>
+      </form>
+    </SidebarPanel>
+  );
+}
+
+interface PeakPanelProps {
+  peak: Feature<Point, PeakProperties>;
+  onClose: () => void;
+}
+export function PeakPanel({ peak, onClose }: PeakPanelProps) {
+  const { name, ele } = peak.properties;
+  const elevation = metersToFeet(parseFloat(ele));
+  return (
+    <SidebarPanel title={name} type="Peak" onClose={onClose}>
+      <p>Elevation: {elevation} ft</p>
+    </SidebarPanel>
+  );
+}
+
+interface RoutePanelProps {
+  route: Feature<LineString, RouteProperties>;
+  onClose: () => void;
+  onPeakSelect: (peak: Feature<Point, PeakProperties>) => void;
+  allPeaks: FeatureCollection<Point, PeakProperties> | null;
+}
+export function RoutePanel({ route, onClose, onPeakSelect, allPeaks }: RoutePanelProps) {
+  const { name, trips, total_elevation_gain, peaks } = route.properties;
+  return (
+    <SidebarPanel title={name} type="Route" onClose={onClose}>
+      <p>Elevation gain: {metersToFeet(total_elevation_gain)} ft</p>
+      <h3>Peaks</h3>
+      <ul className="sidebar-list">
+        {peaks.map(peak => {
+          const feature = allPeaks?.features.find(p => p.id === peak);
+          return (feature)
+            ? (
+              <li key={peak}>
+                <button onClick={() => onPeakSelect(feature)}>
+                  <span className="peak-dot" />
+                  <span className="item-name">{feature.properties.name}</span>
+                  <span className="item-meta">{metersToFeet(parseFloat(feature.properties.ele))} ft</span>
+                </button>
+              </li>)
+            : null;
+        })}
+      </ul>
+      <h3>Trips</h3>
+      <ul className="sidebar-list">
+        {trips.map(trip => (
+          <li key={`${trip.date}${trip.url}`}>
+            <a href={trip.url} target="_blank" rel="noopener">
+                    <span className="item-name">{trip.name}</span>
+                    <span className="item-meta">{trip.date}</span>
+                  </a>
+            {(trip.keywords) ? (
+              <ul className="keyword-list">
+                {trip.keywords.map(keyword => <li key={keyword}>{keyword}</li>)}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </SidebarPanel>
+  );
+}

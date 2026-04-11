@@ -75,6 +75,7 @@ aside {
 }
 
 .sidebar-list {
+  --item-radius: 8px;
   list-style: none;
   padding: 0;
   display: flex;
@@ -82,17 +83,13 @@ aside {
   gap: 0.25rem;
 
   li {
-    button,
-    a {
+    font-size: 0.8125rem;
+    color: var(--text-h);
+    summary,
+    button {
       width: 100%;
-      display: flex;
-      align-items: center;
-      /*justify-content: space-between;*/
-      gap: 0.5rem;
-      padding: 0.4375rem 0.625rem;
-      border-radius: 8px;
-      font-size: 0.8125rem;
-      color: var(--text-h);
+      padding: 0.5rem;
+      border-radius: var(--item-radius);
       background: var(--surface);
       border: 0.5px solid var(--border);
       cursor: pointer;
@@ -110,6 +107,27 @@ aside {
         font-size: 0.6875rem;
         color: var(--text);
         white-space: nowrap;
+      }
+    }
+    button {
+      display: flex;
+    }
+    summary > div {
+      display: inline-flex;
+      /* make room for expand/collapse icon */
+      width: calc(100% - 20px);
+    }
+    summary > div,
+    button {
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    details {
+      border-radius: var(--item-radius);
+      background-color: var(--surface-hover);
+      & > div {
+        padding: 0.5rem;
       }
     }
   }
@@ -141,7 +159,6 @@ aside {
     border: 0.5px solid var(--border-strong);
     background: var(--surface);
     color: var(--text);
-    cursor: pointer;
     user-select: none;
   }
 
@@ -149,6 +166,9 @@ aside {
     display: none;
   }
 
+  label:has(input) {
+    cursor: pointer;
+  }
   label:has(input:checked) {
     background: var(--accent-bg);
     color: var(--accent-text);

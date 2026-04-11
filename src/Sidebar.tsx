@@ -1,6 +1,6 @@
 import type { Settings, WinterTerrainLevelSetting } from './settings';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { PeakProperties, RouteProperties } from '../types';
+import type { PeakProperties, RouteProperties, Trip } from '../types';
 import './Sidebar.css';
 
 const METERS_TO_FEET = 3.28084;
@@ -112,20 +112,35 @@ export function RoutePanel({ route, onClose, onPeakSelect, allPeaks }: RoutePane
       </ul>
       <h3>Trips</h3>
       <ul className="sidebar-list">
-        {trips.map(trip => (
-          <li key={`${trip.date}${trip.url}`}>
-            <a href={trip.url} target="_blank" rel="noopener">
-                    <span className="item-name">{trip.name}</span>
-                    <span className="item-meta">{trip.date}</span>
-                  </a>
-            {(trip.keywords) ? (
-              <ul className="keyword-list">
-                {trip.keywords.map(keyword => <li key={keyword}>{keyword}</li>)}
-              </ul>
-            ) : null}
-          </li>
-        ))}
+        {trips.map(trip => <Trip trip={trip} key={`${trip.date}${trip.url}`} />)}
       </ul>
     </SidebarPanel>
+  );
+}
+
+function Trip({ trip }: { trip: Trip }) {
+  const url = trip.url && new URL(trip.url).origin;
+  return (
+    <li>
+      <details>
+        <summary>
+          <div>
+            <span className="item-name">{trip.name || <i>unnamed</i>}</span>
+            <span className="item-meta">{trip.date}</span>
+          </div>
+        </summary>
+        <div>
+          {url && <a href={url} target="_blank" rel="noopener">{url}</a>}
+          <br />
+          {trip.winterTerrainLevel && <span>Terrain level: {trip.winterTerrainLevel}</span>}
+        </div>
+      </details>
+
+      {(trip.keywords) ? (
+        <ul className="keyword-list">
+          {trip.keywords.map(keyword => <li key={keyword}>{keyword}</li>)}
+        </ul>
+      ) : null}
+    </li>
   );
 }

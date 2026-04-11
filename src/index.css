@@ -56,3 +56,14 @@ h2 {
 input[type="checkbox"] {
   accent-color: var(--accent);
 }
+
+a[href]:not(#map-container a) {
+  color: var(--accent);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+  &[rel="noopener"]::after {
+    content: "↗";
+  }
+}

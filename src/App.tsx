@@ -4,14 +4,14 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import * as L from 'leaflet';
 import SettingsControl from './SettingsControl';
 import { MapBlurHandler, PeakWatcher, RouteWatcher } from './map-friends';
+import Search from './Search';
+import { PeakPanel, RoutePanel, SettingsPanel } from './Sidebar';
 
 import { useGeoJSON } from './data';
 import { useSettings, type Settings, type WinterTerrainLevelSetting } from './settings';
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
-
-import { PeakPanel, RoutePanel, SettingsPanel } from './Sidebar';
 
 import 'leaflet/dist/leaflet.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
@@ -82,6 +82,18 @@ export default function App() {
     };
   }, [routes, selectedPeak, settings.visibleTerrainLevels, settings.activeKeywords]);
 
+  const searchableRoutes = useMemo(() => (
+    [...visibleRoutes?.features ?? [], ...peaks?.features ?? []]
+  ), [visibleRoutes, peaks]);
+
+  function selectSearchItem(item: Feature<LineString, RouteProperties> | Feature<Point, PeakProperties> | null) {
+    if (item === null) return;
+    if (item.geometry.type === 'Point') {
+      setSelectedPeak(item as Feature<Point, PeakProperties>);
+    } else {
+      setSelectedRoute(item as Feature<LineString, RouteProperties>);
+    }
+  }
 
   return (
     <main>
@@ -154,6 +166,7 @@ export default function App() {
         <SettingsControl onToggle={() => setIsSettingsOpen(open => !open)} position="topright" />
         <RouteWatcher selectedRoute={selectedRoute} />
         <PeakWatcher selectedPeak={selectedPeak} visibleRoutes={visibleRoutes} />
+        <Search features={searchableRoutes} className="map-search" onSelect={selectSearchItem} />
       </MapContainer>
       <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
         {isSettingsOpen && <SettingsPanel settings={settings} availableKeywords={availableKeywords} updateTerrainLevel={updateTerrainLevel} toggleKeyword={toggleKeyword} onClose={() => setIsSettingsOpen(false)} />}

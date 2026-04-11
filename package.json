@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@turf/bbox": "^7.3.4",
+    "downshift": "^9.3.2",
     "leaflet": "^1.9.4",
     "modern-normalize": "^3.0.1",
     "react": "^19.2.4",

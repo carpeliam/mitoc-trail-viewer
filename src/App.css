@@ -3,7 +3,11 @@ main {
 }
 
 #map-container {
+  display: relative;
   height: 100vh;
   flex: 1;
+}
+
+.marker-cluster {
   color: black;
 }

@@ -119,7 +119,7 @@ export function RoutePanel({ route, onClose, onPeakSelect, allPeaks }: RoutePane
 }
 
 function Trip({ trip }: { trip: Trip }) {
-  const url = trip.url && new URL(trip.url).origin;
+  const urlHost = trip.url && new URL(trip.url).origin;
   return (
     <li>
       <details>
@@ -130,7 +130,7 @@ function Trip({ trip }: { trip: Trip }) {
           </div>
         </summary>
         <div>
-          {url && <a href={url} target="_blank" rel="noopener">{url}</a>}
+          {trip.url && <a href={trip.url} target="_blank" rel="noopener">{urlHost}</a>}
           <br />
           {trip.winterTerrainLevel && <span>Terrain level: {trip.winterTerrainLevel}</span>}
         </div>

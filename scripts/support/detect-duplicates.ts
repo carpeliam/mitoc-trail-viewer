@@ -2,6 +2,7 @@ import { along, bbox, length, nearestPointOnLine } from '@turf/turf';
 import type { Feature, LineString } from 'geojson';
 import Geohash from 'latlon-geohash';
 import type { RouteProperties } from '../../types';
+import yesno from 'yesno';
 
 export type NewRouteProperties = Omit<RouteProperties, 'trips'> & {
   date: string;
@@ -356,6 +357,21 @@ export function convertToExisting(newRoute: Feature<LineString, NewRouteProperti
   const { date, url, ...otherProperties } = newRoute.properties;
   const properties = { trips: [{ date, url, name: '' }], ...otherProperties };
   return { ...newRoute, properties };
+}
+
+export async function factoredValue(existingValue: number, newValue: number, currentTripCount: number): Promise<number> {
+  const delta = Math.abs(existingValue - newValue);
+  const average = (existingValue + newValue) / 2;
+  if (delta / average > 0.15) {
+    const confirmed = await yesno({
+      question: `${newValue} is ${(delta / average * 100).toFixed(2)}% different from the existing value of ${existingValue}; incorporate it? (y/N)`,
+      defaultValue: false,
+    });
+    if (!confirmed) {
+      return existingValue;
+    }
+  }
+  return (existingValue * currentTripCount + newValue) / (currentTripCount + 1);
 }
 
 export function clearCaches(): void {

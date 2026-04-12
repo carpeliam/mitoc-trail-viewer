@@ -97,7 +97,7 @@ export default function App() {
 
   return (
     <main>
-      <MapContainer center={[44.2706, -71.3033]} zoom={10} scrollWheelZoom={false} id="map-container">
+      <MapContainer center={[44.2706, -71.3033]} zoom={10} id="map-container">
         <MapBlurHandler onBlur={() => { setSelectedRoute(undefined); setSelectedPeak(undefined); }} />
         <Pane name="trails" style={{ zIndex: 200 }} />
         <Pane name="routes" style={{ zIndex: 400 }} />

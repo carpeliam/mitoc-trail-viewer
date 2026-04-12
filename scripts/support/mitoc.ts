@@ -1,4 +1,5 @@
 import yesno from 'yesno';
+import type { RouteProperties } from '../../types';
 
 interface MitocLeader {
   name: string;
@@ -52,4 +53,52 @@ export async function keywordsFor(trip: MitocTrip): Promise<string[]> {
     }
   }
   return keywords;
+}
+
+type DifficultyLevel = 'L0' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+
+const SPICY_PATTERNS: RegExp[] = [
+  /bushwhack/i,
+  /overnight/i,
+  /backpack/i,
+  /scramble/i,
+  /slide trail/i,
+];
+
+const METERS_TO_MILES = 0.000621371;
+const METERS_TO_FEET = 3.28084;
+function levelFromStats(distanceInMeters: number, elevationGainInMeters: number) {
+  const distanceInMiles = distanceInMeters * METERS_TO_MILES;
+  const elevationInFeet = elevationGainInMeters * METERS_TO_FEET;
+  const levelFromDistance = distanceInMiles > 12 ? 5 : distanceInMiles > 8 ? 4 : distanceInMiles > 5 ? 3 : distanceInMiles > 3 ? 2 : 1;
+  const levelFromGain  = elevationInFeet > 4000 ? 5 : elevationInFeet > 3000 ? 4 : elevationInFeet > 1500 ? 3 : elevationInFeet > 600 ? 2 : 1;
+
+  switch (Math.abs(levelFromDistance - levelFromGain)) {
+    case 0:
+      return `L${levelFromDistance - 1}` as DifficultyLevel;
+    case 1:
+      return `L${Math.min(levelFromDistance, levelFromGain) - 1}` as DifficultyLevel;
+    default:
+      return `L${Math.max(levelFromDistance, levelFromGain) - 1}` as DifficultyLevel;
+  }
+}
+function isSpicy(trip: MitocTrip): boolean {
+  const text = `${trip.summary} ${trip.description} ${trip.prereqs}`;
+  return SPICY_PATTERNS.some(p => p.test(text));
+}
+
+export function mapTripDifficulty(trip: MitocTrip, route: RouteProperties): string {
+  // Match a Level via "L{digit}" optionally followed by a second "L{digit}" with optional + or S+ suffix for spiciness
+  const canonicalMatch = trip.difficulty_rating.match(/L([0-5])\s*(?:[/-]\s*L?([0-5]))?\s*(\+|S\+)?/i);
+  if (canonicalMatch) {
+    const min = `L${canonicalMatch[1]}`;
+    const max = canonicalMatch[2] ? `L${canonicalMatch[2]}` : min;
+    const spicy = !!canonicalMatch[3] || isSpicy(trip);
+    const range = min === max ? min : `${min}-${max}`;
+    return spicy ? `${range} S+` : range;
+  } else {
+    const level = levelFromStats(route.distance, route.total_elevation_gain);
+    const spicy = isSpicy(trip);
+    return spicy ? `${level} S+` : level;
+  }
 }

@@ -50,12 +50,14 @@ export const trails: FeatureCollection<LineString, TrailProperties> = featureCol
 export const routes: FeatureCollection<LineString, RouteProperties> = featureCollection([
   lineString([[-68.8665, 45.92231], [-68.92144, 45.90444]], {
     name: 'Katahdin via Cathedral',
+    distance: 7847.5,
     total_elevation_gain: 1126.4,
     peaks: ['node/358211478'],
     trips: [{ date: '2019-08-20', name: '', url: '' }],
   }),
   lineString([[-71.68158, 44.1419], [-71.64444, 44.16065], [-71.68083, 44.14165]], {
     name: 'Franconia Ridge',
+    distance: 14538.5,
     total_elevation_gain: 1186.8,
     peaks: [
       'node/357730240',

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { FeatureCollection, LineString } from 'geojson';
 import type { RouteProperties } from '../types';
-import { keysToCamelCase, keywordsFor, type MitocTrip } from './support/mitoc.ts';
+import { keysToCamelCase, keywordsFor, mapTripDifficulty, type MitocTrip } from './support/mitoc.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
@@ -35,6 +35,7 @@ for (const feature of routes.features) {
       if (mitocTrip.winter_terrain_level) {
         trip.winterTerrainLevel = mitocTrip.winter_terrain_level;
       }
+      trip.difficultyRating = mapTripDifficulty(mitocTrip, feature.properties);
 
       const keywords = await keywordsFor(mitocTrip);
       if (keywords.length > 0) {
@@ -44,6 +45,6 @@ for (const feature of routes.features) {
   }
 }
 
-fs.writeFileSync(routesFile, JSON.stringify(routes), 'utf-8');
+fs.writeFileSync(routesFile, JSON.stringify(routes, null, 2), 'utf-8');
 
 console.log('MITOC trip data added to routes');

@@ -231,7 +231,8 @@ describe('isDuplicate borderline handling', () => {
 function makeNewRoute(coordinates: Position[], peaks: string[]): NewRouteFeature {
   return lineString(coordinates, {
     name: 'Test Route',
-    total_elevation_gain: 500,
+    distance: 4900,
+    total_elevation_gain: 490,
     date: '2024-06-01',
     peaks,
     url: 'https://example.com/route',
@@ -241,6 +242,7 @@ function makeNewRoute(coordinates: Position[], peaks: string[]): NewRouteFeature
 function makeExistingRoute(coordinates: Position[], peaks: string[]): ExistingRouteFeature {
   return lineString(coordinates, {
     name: 'Test Route',
+    distance: 5000,
     total_elevation_gain: 500,
     peaks,
     trips: [{ date: '2024-01-01', url: 'https://example.com/route', name: '' }],

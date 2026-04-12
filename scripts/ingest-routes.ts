@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import open from 'open';
 import yesno from 'yesno';
 import type { RouteProperties } from '../types';
-import { convertToExisting, geojsonUrlFor, isDuplicateRoute, type NewRouteProperties } from './support/detect-duplicates.ts';
+import { convertToExisting, factoredValue, geojsonUrlFor, isDuplicateRoute, type NewRouteProperties } from './support/detect-duplicates.ts';
 
 const newRoutesFile = process.argv[2];
 if (!newRoutesFile) {
@@ -56,7 +56,11 @@ for (const newRoute of newRoutes.features) {
       isDupe = await yesno({ question: 'Is this a duplicate?' });
     }
     if (isDupe) {
-      const { date, url } = newRoute.properties;
+      console.log(newRoute.properties.name, 'identified as duplicate of', knownRoute.properties.name);
+      const { distance, total_elevation_gain, date, url } = newRoute.properties;
+      const currentTripCount = knownRoute.properties.trips.length;
+      knownRoute.properties.distance = await factoredValue(knownRoute.properties.distance, distance, currentTripCount);
+      knownRoute.properties.total_elevation_gain = await factoredValue(knownRoute.properties.total_elevation_gain, total_elevation_gain, currentTripCount);
       if (knownRoute.properties.trips.every(t => t.url !== url && url !== '')) {
         knownRoute.properties.trips.push({ date, url, name: '' });
       }
@@ -69,6 +73,6 @@ for (const newRoute of newRoutes.features) {
   }
 }
 
-fs.writeFileSync(routesFile, JSON.stringify(existingRoutes), 'utf-8');
+fs.writeFileSync(routesFile, JSON.stringify(existingRoutes, null, 2), 'utf-8');
 
 console.log('New routes ingested and written to', routesFile);

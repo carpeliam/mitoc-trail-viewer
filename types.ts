@@ -5,6 +5,7 @@ export interface Trip {
   url: string;
   date: string;
   winterTerrainLevel?: WinterTerrainLevel;
+  difficultyRating?: string;
   keywords?: string[];
 }
 
@@ -21,7 +22,8 @@ export interface PeakProperties {
 
 export interface RouteProperties {
   name: string;
+  distance: number;
   total_elevation_gain: number;
   peaks: string[];
   trips: Trip[];
-};
+}

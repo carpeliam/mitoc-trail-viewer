@@ -4,9 +4,14 @@ import type { PeakProperties, RouteProperties, Trip } from '../types';
 import './Sidebar.css';
 
 const METERS_TO_FEET = 3.28084;
+const METERS_TO_MILES = 0.000621371;
 function metersToFeet(meters: number): string {
   return Math.round(meters * METERS_TO_FEET).toLocaleString();
 }
+function metersToMiles(meters: number): string {
+  return (meters * METERS_TO_MILES).toFixed(2);
+}
+
 
 interface SidebarPanelProps {
   title: string;
@@ -90,10 +95,11 @@ interface RoutePanelProps {
   allPeaks: FeatureCollection<Point, PeakProperties> | null;
 }
 export function RoutePanel({ route, onClose, onPeakSelect, allPeaks }: RoutePanelProps) {
-  const { name, trips, total_elevation_gain, peaks } = route.properties;
+  const { name, trips, distance, total_elevation_gain, peaks } = route.properties;
   return (
     <SidebarPanel title={name} type="Route" onClose={onClose}>
-      <p>Elevation gain: {metersToFeet(total_elevation_gain)} ft</p>
+      <div>Distance: {metersToMiles(distance)} mi</div>
+      <div>Elevation gain: {metersToFeet(total_elevation_gain)} ft</div>
       <h3>Peaks</h3>
       <ul className="sidebar-list">
         {peaks.map(peak => {
@@ -119,7 +125,6 @@ export function RoutePanel({ route, onClose, onPeakSelect, allPeaks }: RoutePane
 }
 
 function Trip({ trip }: { trip: Trip }) {
-  const urlHost = trip.url && new URL(trip.url).origin;
   return (
     <li>
       <details>
@@ -130,9 +135,9 @@ function Trip({ trip }: { trip: Trip }) {
           </div>
         </summary>
         <div>
-          {trip.url && <a href={trip.url} target="_blank" rel="noopener">{urlHost}</a>}
-          <br />
-          {trip.winterTerrainLevel && <span>Terrain level: {trip.winterTerrainLevel}</span>}
+          {trip.url && <a href={trip.url} target="_blank" rel="noopener">{new URL(trip.url).origin}</a>}
+          {trip.difficultyRating && <div>Difficulty: {trip.difficultyRating}</div>}
+          {trip.winterTerrainLevel && <div>Terrain level: {trip.winterTerrainLevel}</div>}
         </div>
       </details>
 

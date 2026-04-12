@@ -26,8 +26,8 @@ export function MapBlurHandler({ onBlur: onBlur, delay = 250 }: { onBlur: (e: L.
 export function RouteWatcher({ selectedRoute }: { selectedRoute: Feature<LineString, RouteProperties> | undefined }) {
   const map = useMap();
   useEffect(() => {
+    map.invalidateSize();
     if (selectedRoute) {
-      map.invalidateSize();
       const [minLng, minLat, maxLng, maxLat] = bbox(selectedRoute);
       map.fitBounds([[minLat, minLng], [maxLat, maxLng]]);
     }
@@ -39,8 +39,8 @@ export function RouteWatcher({ selectedRoute }: { selectedRoute: Feature<LineStr
 export function PeakWatcher({ selectedPeak, visibleRoutes }: { selectedPeak: Feature<Point, PeakProperties> | undefined; visibleRoutes: FeatureCollection<LineString, RouteProperties> | null }) {
   const map = useMap();
   useEffect(() => {
+    map.invalidateSize();
     if (selectedPeak) {
-      map.invalidateSize();
       if (visibleRoutes?.features.length) {
         const [minLng, minLat, maxLng, maxLat] = bbox(visibleRoutes);
         map.flyToBounds([[minLat, minLng], [maxLat, maxLng]], { maxZoom: 14 });

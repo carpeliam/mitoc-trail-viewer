@@ -18,14 +18,18 @@ import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 import './App.css';
 
-function hueFor(feature: Feature | undefined): number {
-  const name = feature?.properties?.name as string;
+function hueFor(feature: Feature<LineString, RouteProperties> | undefined): number {
+  const name = feature?.properties.name;
   if (!name) return 35;
   let hash = 0;
   for (const char of name) {
     hash = (hash * 31 + char.charCodeAt(0)) & 0xffff;
   }
-  return (hash % 25) + 20; // 20–45: leans warmer/redder
+  // Mix bits so that similar names are less likely to have similar hues
+  hash ^= hash >> 8;
+  hash = (hash * 0x9e37) & 0xffff;
+  hash ^= hash >> 4;
+  return (hash % 38) + 7;
 }
 
 function visibleRoutesKey(settings: Settings, selectedPeak: Feature<Point, PeakProperties> | undefined) {
@@ -116,7 +120,7 @@ export default function App() {
             });
           }}
           style={feature => {
-            const hue = hueFor(feature);
+            const hue = hueFor(feature as Feature<LineString, RouteProperties>);
             return {
               color: `hsl(${hue}, 80%, 44%)`,
               weight: feature === selectedRoute ? 8 : 4,

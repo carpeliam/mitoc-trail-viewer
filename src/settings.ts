@@ -1,9 +1,12 @@
 import { useCallback, useState } from 'react';
-import type { WinterTerrainLevel } from '../types';
+import type { WinterTerrainLevel, DifficultyRating } from '../types';
 
 export type WinterTerrainLevelSetting = WinterTerrainLevel | 'summer';
+export type DifficultyRatingSetting = DifficultyRating | 'includeSpicy';
+
 export interface Settings {
   visibleTerrainLevels: Record<WinterTerrainLevelSetting, boolean>;
+  visibleDifficulties: Record<DifficultyRatingSetting, boolean>;
   activeKeywords: Set<string>;
 }
 
@@ -14,10 +17,18 @@ const defaultSettings: Settings = {
     C: true,
     summer: true,
   },
+  visibleDifficulties: {
+    L1: true,
+    L2: true,
+    L3: true,
+    L4: true,
+    L5: true,
+    includeSpicy: true,
+  },
   activeKeywords: new Set(),
 };
 
-export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, value: boolean) => void, (keyword: string) => void] {
+export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, value: boolean) => void, (rating: DifficultyRatingSetting, value: boolean) => void, (keyword: string) => void] {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
   const updateTerrainLevel = useCallback((level: WinterTerrainLevelSetting, value: boolean) => {
@@ -26,6 +37,16 @@ export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, val
       visibleTerrainLevels: {
         ...prev.visibleTerrainLevels,
         [level]: value,
+      },
+    }));
+  }, []);
+
+  const updateDifficultyRating = useCallback((rating: DifficultyRatingSetting, value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      visibleDifficulties: {
+        ...prev.visibleDifficulties,
+        [rating]: value,
       },
     }));
   }, []);
@@ -42,5 +63,5 @@ export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, val
     });
   }, []);
 
-  return [settings, updateTerrainLevel, toggleKeyword];
+  return [settings, updateTerrainLevel, updateDifficultyRating, toggleKeyword];
 }

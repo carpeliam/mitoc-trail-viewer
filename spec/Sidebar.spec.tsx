@@ -2,7 +2,7 @@ import { it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from '@/App.tsx';
 
-it('filters routes by winter difficulty when a checkbox is clicked', async () => {
+it('filters routes by winter terrain level when a checkbox is checked', async () => {
   render(<App />);
   fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
 
@@ -12,6 +12,23 @@ it('filters routes by winter difficulty when a checkbox is clicked', async () =>
 
   fireEvent.click(screen.getByRole('checkbox', { name: 'C' }));
   expect(screen.getByRole('checkbox', { name: 'C' })).not.toBeChecked();
+
+  expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
+});
+
+it('filters routes by difficulty when a checkbox is checked', async () => {
+  render(<App />);
+  fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
+
+  expect(await screen.findByRole('checkbox', { name: 'L1' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'L2' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'L3' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'L4' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'L5' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Include "Spicy" routes' })).toBeChecked();
+
+  fireEvent.click(screen.getByRole('checkbox', { name: 'L4' }));
+  expect(screen.getByRole('checkbox', { name: 'L4' })).not.toBeChecked();
 
   expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
 });

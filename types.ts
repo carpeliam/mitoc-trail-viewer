@@ -1,11 +1,14 @@
 export type WinterTerrainLevel = 'A' | 'B' | 'C';
+export type DifficultyRating = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+export type RangeRating = `${DifficultyRating}-${DifficultyRating}`;
+export type DifficultyRatingValue = DifficultyRating | RangeRating | `${DifficultyRating | RangeRating} S+`;
 
 export interface Trip {
   name: string;
   url: string;
   date: string;
   winterTerrainLevel?: WinterTerrainLevel;
-  difficultyRating?: string;
+  difficultyRating?: DifficultyRatingValue;
   keywords?: string[];
 }
 

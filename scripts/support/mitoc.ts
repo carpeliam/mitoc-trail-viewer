@@ -1,5 +1,5 @@
 import yesno from 'yesno';
-import type { RouteProperties } from '../../types';
+import type { DifficultyRating, DifficultyRatingValue, RangeRating, RouteProperties } from '../../types';
 
 interface MitocLeader {
   name: string;
@@ -55,8 +55,6 @@ export async function keywordsFor(trip: MitocTrip): Promise<string[]> {
   return keywords;
 }
 
-type DifficultyLevel = 'L0' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
-
 const SPICY_PATTERNS: RegExp[] = [
   /bushwhack/i,
   /overnight/i,
@@ -67,7 +65,7 @@ const SPICY_PATTERNS: RegExp[] = [
 
 const METERS_TO_MILES = 0.000621371;
 const METERS_TO_FEET = 3.28084;
-function levelFromStats(distanceInMeters: number, elevationGainInMeters: number) {
+function difficultyRatingFromStats(distanceInMeters: number, elevationGainInMeters: number) {
   const distanceInMiles = distanceInMeters * METERS_TO_MILES;
   const elevationInFeet = elevationGainInMeters * METERS_TO_FEET;
   const levelFromDistance = distanceInMiles > 12 ? 5 : distanceInMiles > 8 ? 4 : distanceInMiles > 5 ? 3 : distanceInMiles > 3 ? 2 : 1;
@@ -75,11 +73,11 @@ function levelFromStats(distanceInMeters: number, elevationGainInMeters: number)
 
   switch (Math.abs(levelFromDistance - levelFromGain)) {
     case 0:
-      return `L${levelFromDistance - 1}` as DifficultyLevel;
+      return `L${levelFromDistance - 1}` as DifficultyRating;
     case 1:
-      return `L${Math.min(levelFromDistance, levelFromGain) - 1}` as DifficultyLevel;
+      return `L${Math.min(levelFromDistance, levelFromGain) - 1}` as DifficultyRating;
     default:
-      return `L${Math.max(levelFromDistance, levelFromGain) - 1}` as DifficultyLevel;
+      return `L${Math.max(levelFromDistance, levelFromGain) - 1}` as DifficultyRating;
   }
 }
 function isSpicy(trip: MitocTrip): boolean {
@@ -87,17 +85,17 @@ function isSpicy(trip: MitocTrip): boolean {
   return SPICY_PATTERNS.some(p => p.test(text));
 }
 
-export function mapTripDifficulty(trip: MitocTrip, route: RouteProperties): string {
+export function mapTripDifficulty(trip: MitocTrip, route: RouteProperties): DifficultyRatingValue {
   // Match a Level via "L{digit}" optionally followed by a second "L{digit}" with optional + or S+ suffix for spiciness
   const canonicalMatch = trip.difficulty_rating.match(/L([0-5])\s*(?:[/-]\s*L?([0-5]))?\s*(\+|S\+)?/i);
   if (canonicalMatch) {
-    const min = `L${canonicalMatch[1]}`;
+    const min = `L${canonicalMatch[1]}` as DifficultyRating;
     const max = canonicalMatch[2] ? `L${canonicalMatch[2]}` : min;
     const spicy = !!canonicalMatch[3] || isSpicy(trip);
-    const range = min === max ? min : `${min}-${max}`;
+    const range = min === max ? min : `${min}-${max}` as RangeRating;
     return spicy ? `${range} S+` : range;
   } else {
-    const level = levelFromStats(route.distance, route.total_elevation_gain);
+    const level = difficultyRatingFromStats(route.distance, route.total_elevation_gain);
     const spicy = isSpicy(trip);
     return spicy ? `${level} S+` : level;
   }

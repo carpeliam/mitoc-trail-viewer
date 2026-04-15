@@ -8,10 +8,10 @@ import Search from './Search';
 import { PeakPanel, RoutePanel, SettingsPanel } from './Sidebar';
 
 import { useGeoJSON } from './data';
-import { useSettings, type Settings, type WinterTerrainLevelSetting } from './settings';
+import { useSettings, type Settings, type WinterTerrainLevelSetting, type DifficultyRatingSetting } from './settings';
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
+import type { DifficultyRating, PeakProperties, RouteProperties, TrailProperties } from '../types';
 
 import 'leaflet/dist/leaflet.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
@@ -36,7 +36,10 @@ function visibleRoutesKey(settings: Settings, selectedPeak: Feature<Point, PeakP
   const activeTerrainLevels = (Object.keys(settings.visibleTerrainLevels) as WinterTerrainLevelSetting[])
     .filter(k => settings.visibleTerrainLevels[k])
     .join();
-  return `${selectedPeak?.id ?? 'all-routes'}-${activeTerrainLevels}-${[...settings.activeKeywords].join(':')}`;
+  const activeDifficulties = (Object.keys(settings.visibleDifficulties) as DifficultyRatingSetting[])
+    .filter(k => settings.visibleDifficulties[k])
+    .join();
+  return `${selectedPeak?.id ?? 'all-routes'}-${activeTerrainLevels}-${activeDifficulties}-${[...settings.activeKeywords].join(':')}`;
 }
 
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
@@ -57,7 +60,7 @@ export default function App() {
   const [selectedPeak, setSelectedPeak] = useState<Feature<Point, PeakProperties>>();
   const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, updateTerrainLevel, toggleKeyword] = useSettings();
+  const [settings, updateTerrainLevel, updateDifficultyRating, toggleKeyword] = useSettings();
 
   const availableKeywords = useMemo(() => {
     if (!routes) return [];
@@ -76,15 +79,28 @@ export default function App() {
         const passesWinterTerrainLevel = f.properties.trips.some(({ winterTerrainLevel }) => (
           settings.visibleTerrainLevels[winterTerrainLevel ?? 'summer']
         ));
+
+        const difficultyRatings = f.properties.trips.map((t) => t.difficultyRating).filter(r => r !== undefined);
+        const passesDifficultyRating = (difficultyRatings.length === 0)
+          ? Object.values(settings.visibleDifficulties).every(v => v)
+          : difficultyRatings.some((difficultyRating) => {
+              const parts = difficultyRating.split(/[\s-]+/);
+              const isSpicy = parts.includes('S+');
+
+              if (isSpicy && !settings.visibleDifficulties.includeSpicy) return false;
+              return parts
+                .filter((p): p is DifficultyRating => p !== 'S+')
+                .some(p => settings.visibleDifficulties[p]);
+            });
         const passesKeywords =
           settings.activeKeywords.size === 0 ||
             f.properties.trips.some(t =>
               t.keywords?.some(kw => settings.activeKeywords.has(kw)),
             );
-        return passesSelectedPeak && passesWinterTerrainLevel && passesKeywords;
+        return passesSelectedPeak && passesWinterTerrainLevel && passesDifficultyRating && passesKeywords;
       }),
     };
-  }, [routes, selectedPeak, settings.visibleTerrainLevels, settings.activeKeywords]);
+  }, [routes, selectedPeak, settings.visibleTerrainLevels, settings.visibleDifficulties, settings.activeKeywords]);
 
   const searchableRoutes = useMemo(() => (
     [...visibleRoutes?.features ?? [], ...peaks?.features ?? []]
@@ -173,7 +189,7 @@ export default function App() {
         <Search features={searchableRoutes} className="map-search" onSelect={selectSearchItem} />
       </MapContainer>
       <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
-        {isSettingsOpen && <SettingsPanel settings={settings} availableKeywords={availableKeywords} updateTerrainLevel={updateTerrainLevel} toggleKeyword={toggleKeyword} onClose={() => setIsSettingsOpen(false)} />}
+        {isSettingsOpen && <SettingsPanel settings={settings} availableKeywords={availableKeywords} updateTerrainLevel={updateTerrainLevel} updateDifficultyRating={updateDifficultyRating} toggleKeyword={toggleKeyword} onClose={() => setIsSettingsOpen(false)} />}
         {selectedRoute && <RoutePanel route={selectedRoute} allPeaks={peaks} onPeakSelect={setSelectedPeak} onClose={() => setSelectedRoute(undefined)} />}
         {selectedPeak && <PeakPanel peak={selectedPeak} onClose={() => setSelectedPeak(undefined)} />}
       </aside>

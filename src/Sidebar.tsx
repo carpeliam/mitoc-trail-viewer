@@ -1,6 +1,6 @@
-import type { Settings, WinterTerrainLevelSetting } from './settings';
+import type { Settings, WinterTerrainLevelSetting, DifficultyRatingSetting } from './settings';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { PeakProperties, RouteProperties, Trip } from '../types';
+import type { DifficultyRating, DifficultyRatingValue, PeakProperties, RouteProperties, Trip, WinterTerrainLevel } from '../types';
 import './Sidebar.css';
 
 const METERS_TO_FEET = 3.28084;
@@ -41,11 +41,12 @@ interface SettingsPanelProps {
   settings: Settings;
   availableKeywords: string[];
   updateTerrainLevel: (level: WinterTerrainLevelSetting, value: boolean) => void;
+  updateDifficultyRating: (rating: DifficultyRatingSetting, value: boolean) => void;
   toggleKeyword: (keyword: string) => void;
   onClose: () => void;
 }
-export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel, toggleKeyword, onClose }: SettingsPanelProps) {
-  const { visibleTerrainLevels, activeKeywords } = settings;
+export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel, updateDifficultyRating, toggleKeyword, onClose }: SettingsPanelProps) {
+  const { visibleTerrainLevels, visibleDifficulties, activeKeywords } = settings;
   return (
     <SidebarPanel title="Settings" className="settings" onClose={onClose}>
       <form>
@@ -55,6 +56,17 @@ export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel,
           <label><input type="checkbox" checked={visibleTerrainLevels.B} onChange={() => updateTerrainLevel('B', !visibleTerrainLevels.B)} /> B</label>
           <label><input type="checkbox" checked={visibleTerrainLevels.C} onChange={() => updateTerrainLevel('C', !visibleTerrainLevels.C)} /> C</label>
           <label><input type="checkbox" checked={visibleTerrainLevels.summer} onChange={() => updateTerrainLevel('summer', !visibleTerrainLevels.summer)} /> 3-Season</label>
+        </div>
+        <h3>Difficulty</h3>
+        <div style={{ display: 'flex', gap: '0.25rem' }}>
+          <label><input type="checkbox" checked={visibleDifficulties.L1} onChange={() => updateDifficultyRating('L1', !visibleDifficulties.L1)} /> L1</label>
+          <label><input type="checkbox" checked={visibleDifficulties.L2} onChange={() => updateDifficultyRating('L2', !visibleDifficulties.L2)} /> L2</label>
+          <label><input type="checkbox" checked={visibleDifficulties.L3} onChange={() => updateDifficultyRating('L3', !visibleDifficulties.L3)} /> L3</label>
+          <label><input type="checkbox" checked={visibleDifficulties.L4} onChange={() => updateDifficultyRating('L4', !visibleDifficulties.L4)} /> L4</label>
+          <label><input type="checkbox" checked={visibleDifficulties.L5} onChange={() => updateDifficultyRating('L5', !visibleDifficulties.L5)} /> L5</label>
+        </div>
+        <div>
+          <label><input type="checkbox" checked={visibleDifficulties.includeSpicy} onChange={() => updateDifficultyRating('includeSpicy', !visibleDifficulties.includeSpicy)} /> Include "Spicy" routes</label>
         </div>
         <h3>Keywords</h3>
         <div className="keyword-list">
@@ -136,8 +148,8 @@ function Trip({ trip }: { trip: Trip }) {
         </summary>
         <div>
           {trip.url && <a href={trip.url} target="_blank" rel="noopener">{new URL(trip.url).origin}</a>}
-          {trip.difficultyRating && <div>Difficulty: {trip.difficultyRating}</div>}
-          {trip.winterTerrainLevel && <div>Terrain level: {trip.winterTerrainLevel}</div>}
+          {trip.difficultyRating && <div>Difficulty: <abbr title={difficultyLabel(trip.difficultyRating)}>{trip.difficultyRating}</abbr></div>}
+          {trip.winterTerrainLevel && <div>Terrain level: <abbr title={terrainLevelLabel(trip.winterTerrainLevel)}>{trip.winterTerrainLevel}</abbr></div>}
         </div>
       </details>
 
@@ -148,4 +160,30 @@ function Trip({ trip }: { trip: Trip }) {
       ) : null}
     </li>
   );
+}
+
+function terrainLevelLabel(level: WinterTerrainLevel): string {
+  const levelLabels: Record<WinterTerrainLevel, string> = {
+    'A': '<1 hr from definitive care',
+    'B': '>=1 hr from definitive care, below treeline',
+    'C': 'Above treeline',
+  };
+
+  return levelLabels[level];
+}
+
+function difficultyLabel(difficulty: DifficultyRatingValue): string {
+  const difficultyLabels: Record<DifficultyRating, string> = {
+    L1: 'Relaxed', L2: 'Easy', L3: 'Moderate', L4: 'Difficult', L5: 'Advanced',
+  };
+
+  const parts = difficulty.split(/[\s-]+/);
+  const isSpicy = parts.includes('S+');
+
+  const base = parts
+    .filter((p): p is DifficultyRating => p in difficultyLabels)
+    .map(p => difficultyLabels[p])
+    .join(' – ');
+
+  return isSpicy ? `${base} (Spicy)` : base;
 }

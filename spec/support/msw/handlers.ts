@@ -71,6 +71,7 @@ export const routes: FeatureCollection<LineString, RouteProperties> = featureCol
         name: 'Franconia Ridge Fun!',
         url: 'https://mitoc-trips.mit.edu/trips/1889/',
         winterTerrainLevel: 'C',
+        difficultyRating: 'L4',
         keywords: ['crampon'],
       },
     ],

@@ -8,10 +8,10 @@ import Search from './Search';
 import { PeakPanel, RoutePanel, SettingsPanel } from './Sidebar';
 
 import { useGeoJSON } from './data';
-import { useSettings, type Settings, type WinterTerrainLevelSetting, type DifficultyRatingSetting } from './settings';
+import { useSettings, isVisible, filterKey, type Settings } from './settings';
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { DifficultyRating, PeakProperties, RouteProperties, TrailProperties } from '../types';
+import type { PeakProperties, RouteProperties, TrailProperties } from '../types';
 
 import 'leaflet/dist/leaflet.css';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
@@ -33,13 +33,7 @@ function hueFor(feature: Feature<LineString, RouteProperties> | undefined): numb
 }
 
 function visibleRoutesKey(settings: Settings, selectedPeak: Feature<Point, PeakProperties> | undefined) {
-  const activeTerrainLevels = (Object.keys(settings.visibleTerrainLevels) as WinterTerrainLevelSetting[])
-    .filter(k => settings.visibleTerrainLevels[k])
-    .join();
-  const activeDifficulties = (Object.keys(settings.visibleDifficulties) as DifficultyRatingSetting[])
-    .filter(k => settings.visibleDifficulties[k])
-    .join();
-  return `${selectedPeak?.id ?? 'all-routes'}-${activeTerrainLevels}-${activeDifficulties}-${[...settings.activeKeywords].join(':')}`;
+  return `${selectedPeak?.id ?? 'all-routes'}-${filterKey(settings)}`;
 }
 
 const tileLayerProps: TileLayerProps = (import.meta.env.VITE_MAPBOX_API_TOKEN)
@@ -74,33 +68,12 @@ export default function App() {
     if (!routes) return null;
     return {
       ...routes,
-      features: routes.features.filter(f => {
-        const passesSelectedPeak = !selectedPeak || f.properties.peaks.includes(selectedPeak.id as string);
-        const passesWinterTerrainLevel = f.properties.trips.some(({ winterTerrainLevel }) => (
-          settings.visibleTerrainLevels[winterTerrainLevel ?? 'summer']
-        ));
-
-        const difficultyRatings = f.properties.trips.map((t) => t.difficultyRating).filter(r => r !== undefined);
-        const passesDifficultyRating = (difficultyRatings.length === 0)
-          ? Object.values(settings.visibleDifficulties).every(v => v)
-          : difficultyRatings.some((difficultyRating) => {
-              const parts = difficultyRating.split(/[\s-]+/);
-              const isSpicy = parts.includes('S+');
-
-              if (isSpicy && !settings.visibleDifficulties.includeSpicy) return false;
-              return parts
-                .filter((p): p is DifficultyRating => p !== 'S+')
-                .some(p => settings.visibleDifficulties[p]);
-            });
-        const passesKeywords =
-          settings.activeKeywords.size === 0 ||
-            f.properties.trips.some(t =>
-              t.keywords?.some(kw => settings.activeKeywords.has(kw)),
-            );
-        return passesSelectedPeak && passesWinterTerrainLevel && passesDifficultyRating && passesKeywords;
+      features: routes.features.filter(feature => {
+        const passesSelectedPeak = !selectedPeak || feature.properties.peaks.includes(selectedPeak.id as string);
+        return passesSelectedPeak && isVisible(feature, settings);
       }),
     };
-  }, [routes, selectedPeak, settings.visibleTerrainLevels, settings.visibleDifficulties, settings.activeKeywords]);
+  }, [routes, selectedPeak, settings]);
 
   const searchableRoutes = useMemo(() => (
     [...visibleRoutes?.features ?? [], ...peaks?.features ?? []]

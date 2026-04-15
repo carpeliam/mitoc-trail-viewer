@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import type { WinterTerrainLevel, DifficultyRating } from '../types';
+import type { Feature, LineString } from 'geojson';
+import type { WinterTerrainLevel, DifficultyRating, RouteProperties } from '../types';
 
 export type WinterTerrainLevelSetting = WinterTerrainLevel | 'summer';
 export type DifficultyRatingSetting = DifficultyRating | 'includeSpicy';
@@ -64,4 +65,41 @@ export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, val
   }, []);
 
   return [settings, updateTerrainLevel, updateDifficultyRating, toggleKeyword];
+}
+
+export function isVisible(f: Feature<LineString, RouteProperties>, settings: Settings): boolean {
+  const passesWinterTerrainLevel = f.properties.trips.some(({ winterTerrainLevel }) => (
+    settings.visibleTerrainLevels[winterTerrainLevel ?? 'summer']
+  ));
+
+  const difficultyRatings = f.properties.trips.map((t) => t.difficultyRating).filter(r => r !== undefined);
+  const passesDifficultyRating = (difficultyRatings.length === 0)
+    ? Object.values(settings.visibleDifficulties).every(v => v)
+    : difficultyRatings.some((difficultyRating) => {
+        const parts = difficultyRating.split(/[\s-]+/);
+        const isSpicy = parts.includes('S+');
+
+        if (isSpicy && !settings.visibleDifficulties.includeSpicy) return false;
+        return parts
+          .filter((p): p is DifficultyRating => p !== 'S+')
+          .some(p => settings.visibleDifficulties[p]);
+      });
+
+  const passesKeywords =
+    settings.activeKeywords.size === 0 ||
+      f.properties.trips.some(t =>
+        t.keywords?.some(kw => settings.activeKeywords.has(kw)),
+      );
+
+  return passesWinterTerrainLevel && passesDifficultyRating && passesKeywords;
+}
+
+export function filterKey(settings: Settings): string {
+  const activeTerrainLevels = (Object.keys(settings.visibleTerrainLevels) as WinterTerrainLevelSetting[])
+    .filter(k => settings.visibleTerrainLevels[k])
+    .join();
+  const activeDifficulties = (Object.keys(settings.visibleDifficulties) as DifficultyRatingSetting[])
+    .filter(k => settings.visibleDifficulties[k])
+    .join();
+  return `${activeTerrainLevels}-${activeDifficulties}-${[...settings.activeKeywords].join(':')}`;
 }

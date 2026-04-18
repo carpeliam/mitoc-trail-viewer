@@ -5,8 +5,8 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { overpassJson, type OverpassNode, type OverpassWay } from 'overpass-ts';
-import osmtogeojson from 'osmtogeojson';
-import { simplify } from '@turf/turf';
+import osm2geojson from 'osm2geojson-lite';
+import { featureCollection, simplify, truncate } from '@turf/turf';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const generatedDir = path.join(__dirname, '..', 'public', 'generated');
@@ -63,6 +63,10 @@ async function fetchOSM() {
   }
 
   const peaks: OverpassNode[] = [], trails: OverpassWay[] = [];
+  const desiredProperties = {
+    LineString: ['id', 'name'],
+    Point: ['id', 'name', 'ele'],
+  };
 
   data.elements.forEach(element => {
     switch (element.type) {
@@ -79,14 +83,21 @@ async function fetchOSM() {
   });
   for (const [type, elements] of Object.entries({ peaks, trails })) {
     console.log(`Converting ${type} to GeoJSON…`);
-    const geojson = osmtogeojson({ elements });
+    const { features } = osm2geojson({ elements });
+    const geojson = featureCollection(features.map(feature => {
+      const properties = Object.fromEntries(
+        Object.entries(feature.properties!).filter(([key]) => desiredProperties[feature.geometry.type as 'LineString' | 'Point'].includes(key)),
+      );
+      return { ...feature, properties };
+    }));
     const simplified = simplify(geojson, {
       tolerance: 0.00001,
       highQuality: false,
     });
+    const truncated = truncate(simplified, { precision: 6 });
 
     console.log('Writing file…');
-    writeFileSync(path.join(generatedDir, `${type}.geojson`), JSON.stringify(simplified));
+    writeFileSync(path.join(generatedDir, `${type}.geojson`), JSON.stringify(truncated));
   }
 
   console.log('Done.');

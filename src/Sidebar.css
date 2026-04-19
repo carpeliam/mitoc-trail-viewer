@@ -182,6 +182,10 @@ aside {
   }
 }
 
+.slider-wrapper {
+  padding: 0 4px 8px;
+}
+
 .slider-handle-wrapper {
   position: absolute;
 }

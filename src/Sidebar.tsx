@@ -83,27 +83,28 @@ export function SettingsPanel({ settings, routes, availableKeywords, updateTerra
           <label><input type="checkbox" checked={visibleDifficulties.includeSpicy} onChange={() => updateDifficultyRating('includeSpicy', !visibleDifficulties.includeSpicy)} /> Include "Spicy" routes</label>
         </div>
         <h3>Distance</h3>
-        <Slider range {...distanceProps}
-          style={{ margin: '0 6px 24px' }}
-          styles={{
-            track: { backgroundColor: 'var(--accent)' },
-            handle: { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', opacity: 1 },
-          }}
-          handleRender={(node, handleProps) => {
-            return (
-              <div className="slider-handle-wrapper" style={{ left: node.props.style?.left }}>
-                <div className="slider-handle-inner">
-                  {node}
-                  {handleProps.dragging && <div className="slider-handle-tooltip">
-                    {metersToMiles(handleProps.value)} mi
-                  </div>}
+        <div className="slider-wrapper">
+          <Slider range {...distanceProps}
+            styles={{
+              track: { backgroundColor: 'var(--accent)' },
+              handle: { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', opacity: 1 },
+            }}
+            handleRender={(node, handleProps) => {
+              return (
+                <div className="slider-handle-wrapper" style={{ left: node.props.style?.left }}>
+                  <div className="slider-handle-inner">
+                    {node}
+                    {handleProps.dragging && <div className="slider-handle-tooltip">
+                      {metersToMiles(handleProps.value)} mi
+                    </div>}
+                  </div>
                 </div>
-              </div>
-            );
-          }}
-          onChangeComplete={value => updateDistance(value as [number, number])}
-          ariaLabelForHandle={['Minimum Distance', 'Maximum Distance']}
-        />
+              );
+            }}
+            onChangeComplete={value => updateDistance(value as [number, number])}
+            ariaLabelForHandle={['Minimum Distance', 'Maximum Distance']}
+          />
+        </div>
         {settings.distance && (
           <p>{metersToMiles(settings.distance[0])} – {metersToMiles(Math.min(settings.distance[1], distanceProps.max ?? settings.distance[1]))} miles</p>
         )}

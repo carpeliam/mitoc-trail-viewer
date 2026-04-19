@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import App from '@/App.tsx';
 
 it('filters routes by winter terrain level when a checkbox is checked', async () => {
@@ -40,4 +40,16 @@ it('filters routes by keywords', async () => {
   fireEvent.click(await screen.findByRole('checkbox', { name: 'crampon' }));
 
   expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Katahdin via Cathedral');
+});
+
+it('filters routes by distance', async () => {
+  render(<App />);
+  fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
+
+  const slider = await screen.findByRole('slider', { name: 'Maximum Distance' });
+  act(() => { slider.focus(); });
+  fireEvent.keyDown(slider, { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 });
+  fireEvent.keyUp(slider, { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 });
+
+  expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
 });

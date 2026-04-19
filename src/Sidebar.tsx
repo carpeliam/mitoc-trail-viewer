@@ -1,6 +1,9 @@
+import { useMemo, type ComponentProps } from 'react';
+import Slider from '@rc-component/slider';
 import type { Settings, WinterTerrainLevelSetting, DifficultyRatingSetting } from './settings';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { DifficultyRating, DifficultyRatingValue, PeakProperties, RouteProperties, Trip, WinterTerrainLevel } from '../types';
+import '@rc-component/slider/assets/index.css';
 import './Sidebar.css';
 
 const METERS_TO_FEET = 3.28084;
@@ -39,14 +42,25 @@ export function SidebarPanel({ title, type, className, onClose, children }: Side
 
 interface SettingsPanelProps {
   settings: Settings;
+  routes: FeatureCollection<LineString, RouteProperties> | null;
   availableKeywords: string[];
   updateTerrainLevel: (level: WinterTerrainLevelSetting, value: boolean) => void;
   updateDifficultyRating: (rating: DifficultyRatingSetting, value: boolean) => void;
+  updateDistance: (value: [number, number]) => void;
   toggleKeyword: (keyword: string) => void;
   onClose: () => void;
 }
-export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel, updateDifficultyRating, toggleKeyword, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ settings, routes, availableKeywords, updateTerrainLevel, updateDistance, updateDifficultyRating, toggleKeyword, onClose }: SettingsPanelProps) {
   const { visibleTerrainLevels, visibleDifficulties, activeKeywords } = settings;
+  const distanceProps = useMemo((): ComponentProps<typeof Slider> => {
+    if (!routes?.features.length) return { disabled: true };
+    const max = Math.max(...routes.features.map(f => f.properties.distance));
+    return {
+      max,
+      marks: { 0: 0, [max]: metersToMiles(max) },
+      defaultValue: [0, max],
+    };
+  }, [routes]);
   return (
     <SidebarPanel title="Settings" className="settings" onClose={onClose}>
       <form>
@@ -68,6 +82,31 @@ export function SettingsPanel({ settings, availableKeywords, updateTerrainLevel,
         <div>
           <label><input type="checkbox" checked={visibleDifficulties.includeSpicy} onChange={() => updateDifficultyRating('includeSpicy', !visibleDifficulties.includeSpicy)} /> Include "Spicy" routes</label>
         </div>
+        <h3>Distance</h3>
+        <Slider range {...distanceProps}
+          style={{ margin: '0 6px 24px' }}
+          styles={{
+            track: { backgroundColor: 'var(--accent)' },
+            handle: { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', opacity: 1 },
+          }}
+          handleRender={(node, handleProps) => {
+            return (
+              <div className="slider-handle-wrapper" style={{ left: node.props.style?.left }}>
+                <div className="slider-handle-inner">
+                  {node}
+                  {handleProps.dragging && <div className="slider-handle-tooltip">
+                    {metersToMiles(handleProps.value)} mi
+                  </div>}
+                </div>
+              </div>
+            );
+          }}
+          onChangeComplete={value => updateDistance(value as [number, number])}
+          ariaLabelForHandle={['Minimum Distance', 'Maximum Distance']}
+        />
+        {settings.distance && (
+          <p>{metersToMiles(settings.distance[0])} – {metersToMiles(Math.min(settings.distance[1], distanceProps.max ?? settings.distance[1]))} miles</p>
+        )}
         <h3>Keywords</h3>
         <div className="keyword-list">
           {availableKeywords.map(keyword => (

@@ -8,6 +8,7 @@ export type DifficultyRatingSetting = DifficultyRating | 'includeSpicy';
 export interface Settings {
   visibleTerrainLevels: Record<WinterTerrainLevelSetting, boolean>;
   visibleDifficulties: Record<DifficultyRatingSetting, boolean>;
+  distance?: [number, number];
   activeKeywords: Set<string>;
 }
 
@@ -29,7 +30,7 @@ const defaultSettings: Settings = {
   activeKeywords: new Set(),
 };
 
-export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, value: boolean) => void, (rating: DifficultyRatingSetting, value: boolean) => void, (keyword: string) => void] {
+export function useSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
   const updateTerrainLevel = useCallback((level: WinterTerrainLevelSetting, value: boolean) => {
@@ -52,6 +53,13 @@ export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, val
     }));
   }, []);
 
+  const updateDistance = useCallback((distance: [number, number]) => {
+    setSettings((prev) => ({
+      ...prev,
+      distance,
+    }));
+  }, []);
+
   const toggleKeyword = useCallback((keyword: string) => {
     setSettings((prev) => {
       const next = new Set(prev.activeKeywords);
@@ -64,7 +72,7 @@ export function useSettings(): [Settings, (level: WinterTerrainLevelSetting, val
     });
   }, []);
 
-  return [settings, updateTerrainLevel, updateDifficultyRating, toggleKeyword];
+  return { settings, updateTerrainLevel, updateDifficultyRating, updateDistance, toggleKeyword };
 }
 
 export function isVisible(f: Feature<LineString, RouteProperties>, settings: Settings): boolean {
@@ -85,13 +93,18 @@ export function isVisible(f: Feature<LineString, RouteProperties>, settings: Set
           .some(p => settings.visibleDifficulties[p]);
       });
 
+  const passesDistance =
+    settings.distance === undefined
+      ? true
+      : f.properties.distance >= settings.distance[0] && f.properties.distance <= settings.distance[1];
+
   const passesKeywords =
     settings.activeKeywords.size === 0 ||
       f.properties.trips.some(t =>
         t.keywords?.some(kw => settings.activeKeywords.has(kw)),
       );
 
-  return passesWinterTerrainLevel && passesDifficultyRating && passesKeywords;
+  return passesWinterTerrainLevel && passesDifficultyRating && passesDistance && passesKeywords;
 }
 
 export function filterKey(settings: Settings): string {
@@ -101,5 +114,6 @@ export function filterKey(settings: Settings): string {
   const activeDifficulties = (Object.keys(settings.visibleDifficulties) as DifficultyRatingSetting[])
     .filter(k => settings.visibleDifficulties[k])
     .join();
-  return `${activeTerrainLevels}-${activeDifficulties}-${[...settings.activeKeywords].join(':')}`;
+  const distance = (settings.distance ?? []).join(':');
+  return `${activeTerrainLevels}-${activeDifficulties}-${distance}-${[...settings.activeKeywords].join(':')}`;
 }

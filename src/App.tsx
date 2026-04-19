@@ -54,7 +54,7 @@ export default function App() {
   const [selectedPeak, setSelectedPeak] = useState<Feature<Point, PeakProperties>>();
   const [selectedRoute, setSelectedRoute] = useState<Feature<LineString, RouteProperties>>();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, updateTerrainLevel, updateDifficultyRating, toggleKeyword] = useSettings();
+  const { settings, updateTerrainLevel, updateDifficultyRating, updateDistance, toggleKeyword } = useSettings();
 
   const availableKeywords = useMemo(() => {
     if (!routes) return [];
@@ -162,7 +162,7 @@ export default function App() {
         <Search features={searchableRoutes} className="map-search" onSelect={selectSearchItem} />
       </MapContainer>
       <aside hidden={!isSettingsOpen && !selectedRoute && !selectedPeak}>
-        {isSettingsOpen && <SettingsPanel settings={settings} availableKeywords={availableKeywords} updateTerrainLevel={updateTerrainLevel} updateDifficultyRating={updateDifficultyRating} toggleKeyword={toggleKeyword} onClose={() => setIsSettingsOpen(false)} />}
+        {isSettingsOpen && <SettingsPanel settings={settings} routes={routes} availableKeywords={availableKeywords} updateTerrainLevel={updateTerrainLevel} updateDifficultyRating={updateDifficultyRating} updateDistance={updateDistance} toggleKeyword={toggleKeyword} onClose={() => setIsSettingsOpen(false)} />}
         {selectedRoute && <RoutePanel route={selectedRoute} allPeaks={peaks} onPeakSelect={setSelectedPeak} onClose={() => setSelectedRoute(undefined)} />}
         {selectedPeak && <PeakPanel peak={selectedPeak} onClose={() => setSelectedPeak(undefined)} />}
       </aside>

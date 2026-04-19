@@ -181,3 +181,27 @@ aside {
     }
   }
 }
+
+.slider-handle-wrapper {
+  position: absolute;
+}
+
+.slider-handle-inner {
+  position: relative;
+}
+
+.slider-handle-tooltip {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--text-h);
+  background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+  padding: 4px;
+}
+
+.rc-slider-handle-dragging {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}

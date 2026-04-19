@@ -31,15 +31,13 @@ export default function Search({ features, onSelect, className }: SearchProps) {
   return (
     <div className={className}>
       <input type="search" placeholder="Search..." {...getInputProps()} />
-      {isOpen && (
-        <ul {...getMenuProps()}>
-          {items.map((item, index) => (
-            <li key={`${item.properties.name}-${index}`} {...getItemProps({ item, index })}>
-              {item.properties.name} ({typeFor(item)})
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul {...getMenuProps()} hidden={!isOpen} onWheelCapture={e => e.stopPropagation()}>
+        {items.map((item, index) => (
+          <li key={`${item.properties.name}-${index}`} {...getItemProps({ item, index })}>
+            {item.properties.name} ({typeFor(item)})
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

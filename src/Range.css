@@ -1,0 +1,27 @@
+.range-wrapper {
+  padding: 0 4px 8px;
+}
+
+.range-handle-wrapper {
+  position: absolute;
+}
+
+.range-handle-inner {
+  position: relative;
+}
+
+.range-handle-tooltip {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--text-h);
+  background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+  padding: 4px;
+}
+
+.rc-slider-handle-dragging {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}

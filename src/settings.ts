@@ -9,6 +9,7 @@ export interface Settings {
   visibleTerrainLevels: Record<WinterTerrainLevelSetting, boolean>;
   visibleDifficulties: Record<DifficultyRatingSetting, boolean>;
   distance?: [number, number];
+  elevationGain?: [number, number];
   activeKeywords: Set<string>;
 }
 
@@ -60,6 +61,13 @@ export function useSettings() {
     }));
   }, []);
 
+  const updateElevationGain = useCallback((elevationGain: [number, number]) => {
+    setSettings((prev) => ({
+      ...prev,
+      elevationGain,
+    }));
+  }, []);
+
   const toggleKeyword = useCallback((keyword: string) => {
     setSettings((prev) => {
       const next = new Set(prev.activeKeywords);
@@ -72,7 +80,7 @@ export function useSettings() {
     });
   }, []);
 
-  return { settings, updateTerrainLevel, updateDifficultyRating, updateDistance, toggleKeyword };
+  return { settings, updateTerrainLevel, updateDifficultyRating, updateDistance, updateElevationGain, toggleKeyword };
 }
 
 export function isVisible(f: Feature<LineString, RouteProperties>, settings: Settings): boolean {
@@ -98,13 +106,18 @@ export function isVisible(f: Feature<LineString, RouteProperties>, settings: Set
       ? true
       : f.properties.distance >= settings.distance[0] && f.properties.distance <= settings.distance[1];
 
+  const passesElevationGain =
+    settings.elevationGain === undefined
+      ? true
+      : f.properties.total_elevation_gain >= settings.elevationGain[0] && f.properties.total_elevation_gain <= settings.elevationGain[1];
+
   const passesKeywords =
     settings.activeKeywords.size === 0 ||
       f.properties.trips.some(t =>
         t.keywords?.some(kw => settings.activeKeywords.has(kw)),
       );
 
-  return passesWinterTerrainLevel && passesDifficultyRating && passesDistance && passesKeywords;
+  return passesWinterTerrainLevel && passesDifficultyRating && passesDistance && passesElevationGain && passesKeywords;
 }
 
 export function filterKey(settings: Settings): string {
@@ -115,5 +128,6 @@ export function filterKey(settings: Settings): string {
     .filter(k => settings.visibleDifficulties[k])
     .join();
   const distance = (settings.distance ?? []).join(':');
-  return `${activeTerrainLevels}-${activeDifficulties}-${distance}-${[...settings.activeKeywords].join(':')}`;
+  const elevationGain = (settings.elevationGain ?? []).join(':');
+  return `${activeTerrainLevels}-${activeDifficulties}-${distance}-${elevationGain}-${[...settings.activeKeywords].join(':')}`;
 }

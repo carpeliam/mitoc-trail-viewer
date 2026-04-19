@@ -53,3 +53,15 @@ it('filters routes by distance', async () => {
 
   expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
 });
+
+it('filters routes by elevation gain', async () => {
+  render(<App />);
+  fireEvent.click(await screen.findByRole('link', { name: 'Settings' }));
+
+  const slider = await screen.findByRole('slider', { name: 'Maximum Elevation Gain' });
+  act(() => { slider.focus(); });
+  fireEvent.keyDown(slider, { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 });
+  fireEvent.keyUp(slider, { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 });
+
+  expect(screen.getByTestId('routes').getAttribute('data-geojson-content')).not.toContain('Franconia Ridge Fun!');
+});

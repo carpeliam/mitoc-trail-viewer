@@ -1,9 +1,8 @@
-import { useMemo, type ComponentProps } from 'react';
-import Slider from '@rc-component/slider';
+import { useMemo } from 'react';
+import Range from './Range';
 import type { Settings, WinterTerrainLevelSetting, DifficultyRatingSetting } from './settings';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { DifficultyRating, DifficultyRatingValue, PeakProperties, RouteProperties, Trip, WinterTerrainLevel } from '../types';
-import '@rc-component/slider/assets/index.css';
 import './Sidebar.css';
 
 const METERS_TO_FEET = 3.28084;
@@ -47,20 +46,32 @@ interface SettingsPanelProps {
   updateTerrainLevel: (level: WinterTerrainLevelSetting, value: boolean) => void;
   updateDifficultyRating: (rating: DifficultyRatingSetting, value: boolean) => void;
   updateDistance: (value: [number, number]) => void;
+  updateElevationGain: (value: [number, number]) => void;
   toggleKeyword: (keyword: string) => void;
   onClose: () => void;
 }
-export function SettingsPanel({ settings, routes, availableKeywords, updateTerrainLevel, updateDistance, updateDifficultyRating, toggleKeyword, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ settings, routes, availableKeywords, updateTerrainLevel, updateDistance, updateElevationGain, updateDifficultyRating, toggleKeyword, onClose }: SettingsPanelProps) {
   const { visibleTerrainLevels, visibleDifficulties, activeKeywords } = settings;
-  const distanceProps = useMemo((): ComponentProps<typeof Slider> => {
-    if (!routes?.features.length) return { disabled: true };
-    const max = Math.max(...routes.features.map(f => f.properties.distance));
-    return {
-      max,
-      marks: { 0: 0, [max]: metersToMiles(max) },
-      defaultValue: [0, max],
-    };
+  const [distanceProps, elevationGainProps] = useMemo(() => {
+    if (!routes?.features.length) {
+      return [{ disabled: true }, { disabled: true }];
+    }
+    const maxDistance = Math.max(...routes.features.map(f => f.properties.distance));
+    const maxElevationGain = Math.max(...routes.features.map(f => f.properties.total_elevation_gain));
+    return [
+      {
+        max: maxDistance,
+        marks: { 0: 0, [maxDistance]: metersToMiles(maxDistance) },
+        defaultValue: [0, maxDistance] as [number, number],
+      },
+      {
+        max: maxElevationGain,
+        marks: { 0: 0, [maxElevationGain]: metersToFeet(maxElevationGain) },
+        defaultValue: [0, maxElevationGain] as [number, number],
+      },
+    ];
   }, [routes]);
+
   return (
     <SidebarPanel title="Settings" className="settings" onClose={onClose}>
       <form>
@@ -82,31 +93,25 @@ export function SettingsPanel({ settings, routes, availableKeywords, updateTerra
         <div>
           <label><input type="checkbox" checked={visibleDifficulties.includeSpicy} onChange={() => updateDifficultyRating('includeSpicy', !visibleDifficulties.includeSpicy)} /> Include "Spicy" routes</label>
         </div>
-        <h3>Distance</h3>
-        <div className="slider-wrapper">
-          <Slider range {...distanceProps}
-            styles={{
-              track: { backgroundColor: 'var(--accent)' },
-              handle: { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', opacity: 1 },
-            }}
-            handleRender={(node, handleProps) => {
-              return (
-                <div className="slider-handle-wrapper" style={{ left: node.props.style?.left }}>
-                  <div className="slider-handle-inner">
-                    {node}
-                    {handleProps.dragging && <div className="slider-handle-tooltip">
-                      {metersToMiles(handleProps.value)} mi
-                    </div>}
-                  </div>
-                </div>
-              );
-            }}
-            onChangeComplete={value => updateDistance(value as [number, number])}
-            ariaLabelForHandle={['Minimum Distance', 'Maximum Distance']}
-          />
-        </div>
+        <h3>Distance (mi)</h3>
+        <Range
+          onChangeComplete={value => updateDistance(value)}
+          ariaLabelForHandle={['Minimum Distance', 'Maximum Distance']}
+          tooltipContent={value => `${metersToMiles(value)} mi`}
+          {...distanceProps}
+        />
         {settings.distance && (
-          <p>{metersToMiles(settings.distance[0])} – {metersToMiles(Math.min(settings.distance[1], distanceProps.max ?? settings.distance[1]))} miles</p>
+          <p>{metersToMiles(settings.distance[0])} – {metersToMiles(settings.distance[1])} miles</p>
+        )}
+        <h3>Elevation Gain (ft)</h3>
+        <Range
+          onChangeComplete={value => updateElevationGain(value)}
+          ariaLabelForHandle={['Minimum Elevation Gain', 'Maximum Elevation Gain']}
+          tooltipContent={value => `${metersToFeet(value)} ft`}
+          {...elevationGainProps}
+        />
+        {settings.elevationGain && (
+          <p>{metersToFeet(settings.elevationGain[0])} – {metersToFeet(settings.elevationGain[1])} feet</p>
         )}
         <h3>Keywords</h3>
         <div className="keyword-list">
